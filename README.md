@@ -13,9 +13,9 @@ bun install --frozen-lockfile
 bun run dev
 ```
 
-English or Russian is selected from `Accept-Language` before the first render. The language buttons save an override in a one-year preference cookie. No account or analytics cookies are used. Fonts are served locally.
+English or Russian is selected from `Accept-Language` before the first render. The language dropdown saves an override in a one-year preference cookie. No account or analytics cookies are used. Fonts are served locally.
 
-Appearance follows the device's light or dark theme by default, including changes while the page is open. The header offers Light, System, and Dark choices. An explicit choice is saved in local storage and applied before the first paint; System clears the override. Switching remains available if storage is blocked.
+Appearance follows the device's light or dark theme by default, including changes while the page is open. The theme dropdown offers Light, System, and Dark choices. An explicit choice is saved in local storage and applied before the first paint; System clears the override. Switching remains available if storage is blocked. Both dropdowns support arrow keys, Home, End, typing an option's first letter, Escape, and outside-click dismissal.
 
 ## Analytics
 

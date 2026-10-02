@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { messages } from '../src/lib/i18n';
 import { emptySnapshot, type Status } from '../src/lib/status';
+import { chooseTheme } from './preferences';
 
 const backgrounds = { light: 'rgb(248, 249, 245)', dark: 'rgb(16, 22, 19)' };
 const expectTheme = (page: Page, theme: keyof typeof backgrounds) =>
@@ -15,24 +16,22 @@ test('follows device changes, remembers overrides, and returns to automatic mode
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('/');
   await expectTheme(page, 'dark');
-  await expect(page.getByRole('button', { name: t.theme.system })).toHaveAttribute(
-    'aria-pressed',
-    'true'
+  await expect(page.locator('#theme-selector')).toHaveAccessibleName(
+    `${t.appearance}: ${t.theme.system}`
   );
   await page.emulateMedia({ colorScheme: 'light' });
   await expectTheme(page, 'light');
-  await page.getByRole('button', { name: t.theme.dark, exact: true }).click();
+  await chooseTheme(page, t.theme.dark);
   await page.reload();
   await expectTheme(page, 'dark');
-  await expect(page.getByRole('button', { name: t.theme.dark, exact: true })).toHaveAttribute(
-    'aria-pressed',
-    'true'
+  await expect(page.locator('#theme-selector')).toHaveAccessibleName(
+    `${t.appearance}: ${t.theme.dark}`
   );
   await page.emulateMedia({ colorScheme: 'dark' });
-  await page.getByRole('button', { name: t.theme.light, exact: true }).click();
+  await chooseTheme(page, t.theme.light);
   await page.reload();
   await expectTheme(page, 'light');
-  await page.getByRole('button', { name: t.theme.system }).click();
+  await chooseTheme(page, t.theme.system);
   await expectTheme(page, 'dark');
   await page.reload();
   await expectTheme(page, 'dark');
@@ -55,16 +54,21 @@ test('applies a saved override before hydration and supports keyboard switching'
   await page.goto('/', { waitUntil: 'commit' });
   try {
     await expectTheme(page, 'dark');
-    await expect(page.getByRole('button', { name: t.theme.dark, exact: true })).toBeDisabled();
+    await expect(page.locator('#theme-selector')).toBeDisabled();
   } finally {
     release();
   }
-  const light = page.getByRole('button', { name: t.theme.light, exact: true });
-  await expect(light).toBeEnabled();
-  await light.focus();
+  const trigger = page.locator('#theme-selector');
+  await expect(trigger).toBeEnabled();
+  await trigger.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('menuitemradio', { name: t.theme.dark, exact: true })).toBeFocused();
+  await page.keyboard.press('Home');
+  await expect(page.getByRole('menuitemradio', { name: t.theme.light, exact: true })).toBeFocused();
   await page.keyboard.press('Enter');
   await expectTheme(page, 'light');
-  await expect(light).toBeFocused();
+  await expect(trigger).toBeFocused();
+  await expect(page.getByRole('menu')).toHaveCount(0);
 });
 
 test('switches themes even when browser storage is blocked', async ({ page }, testInfo) => {
@@ -83,9 +87,9 @@ test('switches themes even when browser storage is blocked', async ({ page }, te
   });
   await page.goto('/');
   await expectTheme(page, 'dark');
-  await page.getByRole('button', { name: t.theme.light, exact: true }).click();
+  await chooseTheme(page, t.theme.light);
   await expectTheme(page, 'light');
-  await page.getByRole('button', { name: t.theme.system }).click();
+  await chooseTheme(page, t.theme.system);
   await expectTheme(page, 'dark');
   expect(errors).toEqual([]);
 });
@@ -97,9 +101,9 @@ test('shares an appearance choice across open tabs', async ({ page, context }, t
   const other = await context.newPage();
   await other.emulateMedia({ colorScheme: 'light' });
   await other.goto('/');
-  await page.getByRole('button', { name: t.theme.dark, exact: true }).click();
+  await chooseTheme(page, t.theme.dark);
   await expectTheme(other, 'dark');
-  await other.getByRole('button', { name: t.theme.system }).click();
+  await chooseTheme(other, t.theme.system);
   await expectTheme(page, 'light');
   await other.close();
 });
@@ -166,7 +170,7 @@ test('keeps dark service details and incidents legible without overflowing', asy
     };
     return [
       ...document.querySelectorAll(
-        'h1, .hero-description, .status-pill, .component-title, .history-heading, .incident-update p, .incident-state, .button, .theme-switch button.active'
+        'h1, .hero-description, .status-pill, .component-title, .history-heading, .incident-update p, .incident-state, .button, .preference-trigger'
       )
     ].map((element) => {
       const a = luminance(rgb(getComputedStyle(element).color));

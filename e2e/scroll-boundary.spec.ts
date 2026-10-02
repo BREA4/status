@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { chooseLanguage } from './preferences';
 
 async function expectSidebarBoundary(page: Page) {
   await page.evaluate(async () => {
@@ -30,7 +31,7 @@ for (const locale of ['en', 'ru'] as const) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto('/');
       await expect(page.locator('.hero-links')).toHaveAttribute('style', /opacity:\s*1/);
-      await page.getByRole('button', { name: locale.toUpperCase(), exact: true }).click();
+      await chooseLanguage(page, locale);
       await expectSidebarBoundary(page);
 
       await page

@@ -36,7 +36,7 @@ test('automatically updates the headline from reported data and incidents', asyn
     return route.fulfill({ json: snapshot });
   });
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'EN', exact: true })).toBeEnabled();
+  await expect(page.locator('#language-selector')).toBeEnabled();
   const headline = page.getByRole('heading', { level: 1 });
 
   async function poll(statuses: Status[], expected: keyof typeof t.headline, incident = false) {

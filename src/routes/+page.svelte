@@ -6,6 +6,7 @@
   import Icon from '#lib/components/Icon.svelte';
   import ServiceGroup from '#lib/components/ServiceGroup.svelte';
   import ThemeSwitcher from '#lib/components/ThemeSwitcher.svelte';
+  import PreferenceDropdown from '#lib/components/PreferenceDropdown.svelte';
   import type { PageData } from './$types';
 
   export let data: PageData;
@@ -44,6 +45,7 @@
     locale = next;
     document.documentElement.lang = next;
     document.cookie = `breach-locale=${next}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`;
+    requestAnimationFrame(refreshMotion);
   }
   function toggleGroup(id: string) {
     const next = new Set(opened);
@@ -147,19 +149,18 @@
     <span class="header-divider"></span><span class="header-label">{t.statusPage}</span>
     <nav class="header-actions" aria-label={t.preferences}>
       <ThemeSwitcher {locale} />
-      <div class="language-switch" role="group" aria-label={t.language}>
-        <button
-          class:active={locale === 'en'}
-          disabled={!mounted}
-          aria-pressed={locale === 'en'}
-          onclick={() => setLocale('en')}>EN</button
-        ><button
-          class:active={locale === 'ru'}
-          disabled={!mounted}
-          aria-pressed={locale === 'ru'}
-          onclick={() => setLocale('ru')}>RU</button
-        >
-      </div>
+      <PreferenceDropdown
+        id="language-selector"
+        label={t.language}
+        value={locale}
+        display={locale.toUpperCase()}
+        ready={mounted}
+        options={[
+          { value: 'en', label: 'English', lang: 'en' },
+          { value: 'ru', label: 'Русский', lang: 'ru' }
+        ]}
+        onChange={(next) => setLocale(next as Locale)}
+      />
       <a class="back-link" href="https://brea4.space">{t.back}<Icon name="external" size={13} /></a>
     </nav>
   </header>

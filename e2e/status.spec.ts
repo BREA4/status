@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { emptySnapshot } from '../src/lib/status';
 import { messages } from '../src/lib/i18n';
+import { chooseLanguage } from './preferences';
 
 test('waits for hydration before accepting a language click', async ({ page }) => {
   let release!: () => void;
@@ -13,11 +14,11 @@ test('waits for hydration before accepting a language click', async ({ page }) =
   });
   await page.goto('/', { waitUntil: 'commit' });
   try {
-    await expect(page.getByRole('button', { name: 'EN', exact: true })).toBeDisabled();
+    await expect(page.locator('#language-selector')).toBeDisabled();
   } finally {
     release();
   }
-  await page.getByRole('button', { name: 'EN', exact: true }).click();
+  await chooseLanguage(page, 'en');
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
 });
 
@@ -38,7 +39,7 @@ test('detects language, persists a switch, and keeps layouts within the viewport
   expect(Object.values(messages[russian ? 'ru' : 'en'].headline)).toContain(
     await page.getByRole('heading', { level: 1 }).textContent()
   );
-  await page.getByRole('button', { name: russian ? 'EN' : 'RU', exact: true }).click();
+  await chooseLanguage(page, russian ? 'en' : 'ru');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('lang', russian ? 'en' : 'ru');
   const dimensions = await page.evaluate(() => {
@@ -58,7 +59,7 @@ test('detects language, persists a switch, and keeps layouts within the viewport
 
 test('filters locations, expands protocols and exposes missing history', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'EN', exact: true }).click();
+  await chooseLanguage(page, 'en');
   await page.getByRole('button', { name: 'Network', exact: true }).click();
   await expect(page.locator('.service-group')).toHaveCount(3);
   await page.getByRole('button', { name: /Amsterdam/ }).click();
@@ -71,7 +72,7 @@ test('filters locations, expands protocols and exposes missing history', async (
 
 test('refreshes statuses and reports an unreachable API', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'EN', exact: true }).click();
+  await chooseLanguage(page, 'en');
   const snapshot = emptySnapshot();
   snapshot.components.forEach((component) => {
     component.status = 'operational';
@@ -87,7 +88,7 @@ test('refreshes statuses and reports an unreachable API', async ({ page }) => {
 
 test('stale data cannot stay green, even after a successful fetch', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'EN', exact: true }).click();
+  await chooseLanguage(page, 'en');
   const snapshot = emptySnapshot(Date.now() - 600_000);
   snapshot.components.forEach((component) => {
     component.status = 'operational';
@@ -101,7 +102,7 @@ test('stale data cannot stay green, even after a successful fetch', async ({ pag
 
 test('incident updates are escaped, localized, and paginated', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'EN', exact: true }).click();
+  await chooseLanguage(page, 'en');
   const snapshot = emptySnapshot();
   snapshot.incidents = Array.from({ length: 4 }, (_, index) => ({
     id: `incident-${index}`,
@@ -125,6 +126,6 @@ test('incident updates are escaped, localized, and paginated', async ({ page }) 
   await expect(page.locator('.incident-update script')).toHaveCount(0);
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await expect(page.locator('.incident')).toHaveCount(1);
-  await page.getByRole('button', { name: 'RU', exact: true }).click();
+  await chooseLanguage(page, 'ru');
   await expect(page.locator('.incident-update')).toContainText('Работа восстановлена');
 });

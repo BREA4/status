@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { messages, type Locale } from '#lib/i18n.ts';
-  import Icon from './Icon.svelte';
+  import PreferenceDropdown from './PreferenceDropdown.svelte';
 
   export let locale: Locale;
   type Theme = 'light' | 'system' | 'dark';
@@ -13,6 +13,8 @@
   let preference: Theme = 'system';
   let ready = false;
   $: t = messages[locale];
+  $: options = choices.map(({ theme, icon }) => ({ value: theme, label: t.theme[theme], icon }));
+  $: icon = choices.find(({ theme }) => theme === preference)!.icon;
 
   function normalize(value: string | null | undefined): Theme {
     return value === 'light' || value === 'dark' ? value : 'system';
@@ -59,15 +61,14 @@
   });
 </script>
 
-<div class="theme-switch" role="group" aria-label={t.appearance}>
-  {#each choices as { theme, icon }}
-    <button
-      class:active={ready && preference === theme}
-      disabled={!ready}
-      aria-pressed={ready && preference === theme}
-      aria-label={t.theme[theme]}
-      title={t.theme[theme]}
-      onclick={() => choose(theme)}><Icon name={icon} size={16} /></button
-    >
-  {/each}
-</div>
+<PreferenceDropdown
+  id="theme-selector"
+  label={t.appearance}
+  value={preference}
+  display={t.themeShort[preference]}
+  {icon}
+  {options}
+  {ready}
+  compact
+  onChange={(next) => choose(normalize(next))}
+/>

@@ -137,6 +137,8 @@ button {
   top: 16px;
 }
 .site-header {
+  position: relative;
+  z-index: 10;
   display: flex;
   align-items: center;
   height: 108px;
@@ -175,46 +177,94 @@ button {
   gap: 16px;
   margin-left: auto;
 }
-.language-switch,
-.theme-switch {
+.preference-dropdown {
+  position: relative;
+}
+.preference-trigger {
   display: flex;
-  padding: 3px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 11px;
+  border: 1px solid transparent;
+  border-radius: 7px;
   background: var(--control);
-  border-radius: 6px;
-  gap: 2px;
+  color: var(--secondary);
+  font-size: 12px;
+  white-space: nowrap;
+  transition:
+    background 160ms,
+    border-color 160ms;
 }
-.language-switch button,
-.theme-switch button {
-  padding: 6px 9px;
-  border-radius: 4px;
-  font-size: 11px;
-  letter-spacing: 0.025em;
+.preference-trigger:hover,
+.preference-trigger[aria-expanded='true'] {
+  border-color: var(--line-strong);
+  background: var(--hover);
+  color: var(--ink);
+}
+.preference-chevron {
+  display: flex;
+  transform: rotate(90deg);
+  transition: transform 160ms;
+}
+.preference-trigger[aria-expanded='true'] .preference-chevron {
+  transform: rotate(-90deg);
+}
+.preference-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  width: max-content;
+  min-width: 166px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: light-dark(#fff, #18211b);
+  box-shadow: 0 8px 28px light-dark(#24361e14, #00000040);
+  transform-origin: top right;
+  animation: preference-enter 140ms ease-out;
+}
+.preference-menu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 10px;
+  border-radius: 5px;
   background: transparent;
-  color: var(--muted);
-  min-height: 30px;
-  transition: background 0.2s;
+  color: var(--secondary);
+  text-align: left;
+  white-space: nowrap;
+  font-size: 12px;
 }
-.language-switch button.active,
-.theme-switch button.active {
-  background: var(--surface-solid);
-  color: var(--ink);
-  box-shadow: 0 1px 3px light-dark(#24361e12, #00000030);
-}
-.language-switch button:hover,
-.theme-switch button:hover {
+.preference-menu button[aria-checked='true'] {
   color: var(--ink);
 }
-.theme-switch button {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  padding: 6px;
+.preference-menu button:hover,
+.preference-menu button:focus-visible {
+  outline: none;
+  background: var(--active);
+  color: var(--active-ink);
 }
-.theme-switch button svg {
-  transition: transform 0.2s;
+.preference-check {
+  display: flex;
+  justify-content: flex-end;
+  width: 20px;
+  margin-left: auto;
+  color: var(--green);
 }
-.theme-switch button:hover svg {
-  transform: translateY(-1px);
+@keyframes preference-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .back-link {
   display: flex;
@@ -1253,13 +1303,14 @@ h1 {
     gap: 7px;
     font-size: 24px;
   }
-  .theme-switch button {
-    width: 30px;
-    min-height: 32px;
+  .preference-trigger {
+    min-height: 44px;
   }
-  .language-switch button {
-    padding: 5px 7px;
-    min-height: 32px;
+  .preference-menu button {
+    min-height: 44px;
+  }
+  .preference-dropdown.compact .preference-value {
+    display: none;
   }
   .hero {
     padding-block: 44px;
@@ -1379,18 +1430,6 @@ h1 {
   }
   .support-card h2 {
     font-size: 23px;
-  }
-}
-@media (max-width: 360px) {
-  .site-header {
-    height: auto;
-    min-height: 85px;
-    padding-block: 20px;
-    flex-wrap: wrap;
-  }
-  .header-actions {
-    width: 100%;
-    justify-content: space-between;
   }
 }
 @media (prefers-reduced-motion: reduce) {
