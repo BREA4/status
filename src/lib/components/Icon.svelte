@@ -9,6 +9,9 @@
     | 'clock'
     | 'plus'
     | 'signal'
+    | 'sun'
+    | 'monitor'
+    | 'moon'
     | 'rss' = 'arrow';
   export let size = 18;
   const paths = {
@@ -21,6 +24,10 @@
     clock: 'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM12 7v5l3 2',
     plus: 'M12 5v14M5 12h14',
     signal: 'M4 17v3M9 12v8M14 7v13M19 3v17',
+    sun: 'M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5',
+    monitor:
+      'M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1ZM12 17v4m-4 0h8',
+    moon: 'M20.8 13A9 9 0 0 1 11 3.2 9 9 0 1 0 20.8 13Z',
     rss: 'M4 4a16 16 0 0 1 16 16M4 10a10 10 0 0 1 10 10M4 19h.01'
   };
 </script>

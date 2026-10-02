@@ -4,7 +4,24 @@
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#101613" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f8f9f5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#101613" media="(prefers-color-scheme: dark)" />
+    <script nonce="%sveltekit.nonce%">
+      // Apply an explicit choice before styles and page content can paint.
+      try {
+        const theme = localStorage.getItem('breach-theme');
+        if (theme === 'light' || theme === 'dark') {
+          document.documentElement.dataset.theme = theme;
+          document.querySelector('meta[name="color-scheme"]').content = theme;
+          document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {
+            meta.content = theme === 'dark' ? '#101613' : '#f8f9f5';
+          });
+        }
+      } catch {
+        // Device preferences still work when browser storage is unavailable.
+      }
+    </script>
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover">

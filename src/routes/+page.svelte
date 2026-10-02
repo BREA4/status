@@ -5,6 +5,7 @@
   import { aggregate, currentStatus, isFresh, type Snapshot, type Status } from '#lib/status.ts';
   import Icon from '#lib/components/Icon.svelte';
   import ServiceGroup from '#lib/components/ServiceGroup.svelte';
+  import ThemeSwitcher from '#lib/components/ThemeSwitcher.svelte';
   import type { PageData } from './$types';
 
   export let data: PageData;
@@ -138,8 +139,9 @@
       ></a
     >
     <span class="header-divider"></span><span class="header-label">{t.statusPage}</span>
-    <nav class="header-actions" aria-label={t.language}>
-      <div class="language-switch">
+    <nav class="header-actions" aria-label={t.preferences}>
+      <ThemeSwitcher {locale} />
+      <div class="language-switch" role="group" aria-label={t.language}>
         <button
           class:active={locale === 'en'}
           disabled={!mounted}
