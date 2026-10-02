@@ -2,6 +2,8 @@
 
 A small bilingual status page built with Bun, SvelteKit 3, Svelte 5, and TypeScript. It shows Breach website services, the Moscow control plane, and the Amsterdam and Riga VPN edges. The catalog follows BREA4/vpn-web and the redacted production documentation linked by that repository.
 
+Production: [breach-status.vercel.app](https://breach-status.vercel.app). Vercel project `gridness-projects/breach-status` is connected to this repository's `main` branch.
+
 ## Run
 
 ```sh
@@ -30,6 +32,8 @@ bun run test:e2e
 ```
 
 GitHub Actions runs the same checks on pushes and pull requests. Browser tests cover desktop and mobile, language detection and persistence, filters, component details, refresh failures, stale data, and incidents.
+
+To check a deployment, set `STATUS_E2E_BASE_URL=https://breach-status.vercel.app` when running `bun run test:e2e`. The tests make read-only requests and simulate status changes inside the test browser.
 
 ## Deploy from GitHub
 
