@@ -166,7 +166,7 @@ test('keeps dark service details and incidents legible without overflowing', asy
     };
     return [
       ...document.querySelectorAll(
-        'h1, .hero-description, .status-pill, .component-title, .detail-note, .history-heading, .incident-update p, .incident-state, .button, .theme-switch button.active'
+        'h1, .hero-description, .status-pill, .component-title, .history-heading, .incident-update p, .incident-state, .button, .theme-switch button.active'
       )
     ].map((element) => {
       const a = luminance(rgb(getComputedStyle(element).color));

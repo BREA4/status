@@ -29,6 +29,8 @@ Public HTTPS checks run for `https://brea4.space/` and its password sign-in page
 
 Other components display **No data** until connected to an observation feed. No node addresses, account credentials, or VPN secrets are included in this repository. A monitor should perform the actual protocol checks from the networks that matter to users.
 
+Service details show only the 90-day history. The headline updates every 60 seconds from current reported statuses and active incidents. Partial healthy coverage reads "Monitored services operational"; "All systems operational" requires every component to report. Components without current data remain labeled "No data", and the headline reports unavailable data when no current statuses remain. Checks expire after five minutes even if refresh fails.
+
 See [docs/monitoring.md](docs/monitoring.md) for the feed contract, all component IDs, freshness rules, and incident publishing. Daily history is displayed only when supplied by a monitor; this stateless app does not invent or retain uptime history.
 
 ## Validate
@@ -46,6 +48,8 @@ VERCEL_ENV=production bun run test:e2e -- e2e/analytics.spec.ts
 GitHub Actions runs the same checks on pushes and pull requests. Browser tests cover desktop and mobile, language detection and persistence, filters, component details, refresh failures, stale data, and incidents.
 
 To check a deployment, set `STATUS_E2E_BASE_URL=https://breach-status.vercel.app` when running `bun run test:e2e`. The tests make read-only requests and simulate status changes inside the test browser.
+
+For protected Preview deployments, set `STATUS_E2E_STORAGE_STATE` to a private Playwright storage-state file containing the deployment's bypass cookie. Keep that file outside the repository. Preview tests do not require disabling deployment protection.
 
 ## Deploy from GitHub
 

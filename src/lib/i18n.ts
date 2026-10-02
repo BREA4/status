@@ -28,11 +28,12 @@ const en = {
   networkStatus: 'Breach network status',
   headline: {
     operational: 'All systems operational.',
+    monitored_operational: 'Monitored services operational.',
     degraded: 'Some services are degraded.',
     partial_outage: 'Some services are unavailable.',
     outage: 'A service interruption is ongoing.',
     maintenance: 'Maintenance is in progress.',
-    unknown: 'Some status data is unavailable.'
+    unknown: 'Status data is unavailable.'
   },
   intro:
     'A live view of the network you rely on. Check connections, services, and recent updates in one place.',
@@ -63,11 +64,6 @@ const en = {
   noHistory: 'No recorded history',
   noMeasurement: 'No measurement',
   measured: 'measured uptime',
-  unknownNote: 'No current monitoring data for this component.',
-  reachability:
-    'Public HTTP check. This confirms reachability, not a complete sign-in or account workflow.',
-  probeNote:
-    'Public checks cover the website and sign-in page. Account functions and VPN protocols require their own checks.',
   status: {
     operational: 'Operational',
     degraded: 'Degraded',
@@ -109,7 +105,6 @@ const en = {
   legend: 'Status legend',
   monitoring: 'Monitoring coverage',
   coverageSuffix: 'components reporting',
-  lastObservation: 'Last observation',
   close: 'Close',
   historyHint:
     'Daily availability appears when measured history is connected. Empty days have no data.',
@@ -124,11 +119,12 @@ const ru: typeof en = {
   networkStatus: 'Статус сети Breach',
   headline: {
     operational: 'Все системы работают.',
+    monitored_operational: 'Отслеживаемые сервисы работают.',
     degraded: 'Некоторые сервисы работают со сбоями.',
     partial_outage: 'Некоторые сервисы недоступны.',
     outage: 'В работе сервиса произошел сбой.',
     maintenance: 'Идут технические работы.',
-    unknown: 'Часть данных о статусе недоступна.'
+    unknown: 'Данные о статусе недоступны.'
   },
   intro:
     'Текущее состояние вашей сети. Подключения, сервисы и последние обновления на одной странице.',
@@ -159,11 +155,6 @@ const ru: typeof en = {
   noHistory: 'Истории пока нет',
   noMeasurement: 'Нет измерений',
   measured: 'измеренная доступность',
-  unknownNote: 'Для этого компонента пока нет актуальных данных мониторинга.',
-  reachability:
-    'Проверка по HTTP подтверждает доступность страницы, но не полный сценарий входа или работу кабинета.',
-  probeNote:
-    'Проверки охватывают сайт и страницу входа. Функциям кабинета и протоколам VPN нужны отдельные проверки.',
   status: {
     operational: 'Работает',
     degraded: 'Работает со сбоями',
@@ -205,7 +196,6 @@ const ru: typeof en = {
   legend: 'Обозначения',
   monitoring: 'Охват мониторинга',
   coverageSuffix: 'компонентов передают данные',
-  lastObservation: 'Последнее наблюдение',
   close: 'Закрыть',
   historyHint:
     'Доступность по дням появится после подключения истории измерений. Пустые дни означают отсутствие данных.',

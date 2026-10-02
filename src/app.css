@@ -726,11 +726,6 @@ h1 {
   align-items: center;
   gap: 12px;
 }
-.latency {
-  color: var(--muted);
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-}
 .component-plus {
   color: light-dark(#acb4a4, #92a482);
   display: flex;
@@ -745,17 +740,8 @@ h1 {
   font-size: 12px;
   line-height: 1.7;
 }
-.detail-note {
-  margin-top: 6px;
-  font-size: 11px;
-  color: var(--muted);
-}
-.detail-time {
-  margin-top: 7px;
-  font-size: 10px;
-}
 .history-block {
-  margin-top: 19px;
+  margin-top: 5px;
 }
 .history-heading,
 .history-scale {
@@ -803,18 +789,6 @@ h1 {
 }
 .history-bar.maintenance {
   background: light-dark(#a09cc6, #ada5d8);
-}
-.monitoring-note {
-  display: flex;
-  gap: 9px;
-  align-items: flex-start;
-  font-size: 10px;
-  line-height: 1.8;
-  color: var(--muted);
-  padding: 19px 7px 0;
-}
-.monitoring-note svg {
-  margin-top: 2px;
 }
 .incidents-section {
   border-top: 1px solid var(--line);
@@ -1365,9 +1339,6 @@ h1 {
   }
   .component-right {
     gap: 7px;
-  }
-  .component-right .latency {
-    display: none;
   }
   .component-right .status-pill {
     font-size: 9px;

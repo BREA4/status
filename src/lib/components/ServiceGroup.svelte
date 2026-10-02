@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { ServiceGroup } from '#lib/catalog.ts';
-  import { messages, type Locale } from '#lib/i18n.ts';
+  import type { Locale } from '#lib/i18n.ts';
   import { aggregate, currentStatus, type Snapshot } from '#lib/status.ts';
   import Icon from './Icon.svelte';
   import StatusPill from './StatusPill.svelte';
@@ -13,7 +13,6 @@
   export let ready = false;
   export let onToggle: () => void;
   let detail: string | null = null;
-  $: t = messages[locale];
   $: components = group.components.map((component) => ({
     ...component,
     observation: snapshot.components.find(({ id }) => component.id === id)!
@@ -58,9 +57,6 @@
               ><span class="component-branch"></span><span>{component.name[locale]}</span></span
             >
             <span class="component-right">
-              {#if observation.latency !== null && componentStatus !== 'unknown'}<span
-                  class="latency">{observation.latency} ms</span
-                >{/if}
               <StatusPill status={componentStatus} {locale} /><span class="component-plus"
                 ><Icon name="plus" size={13} /></span
               >
@@ -68,20 +64,6 @@
           </button>
           {#if detail === component.id}
             <div class="component-detail" id={`detail-${component.id}`}>
-              <p>{component.description[locale]}</p>
-              <p class="detail-note">
-                {componentStatus === 'unknown'
-                  ? t.unknownNote
-                  : observation.source === 'http'
-                    ? t.reachability
-                    : ''}
-              </p>
-              {#if observation.checkedAt}<p class="detail-time">
-                  {t.lastObservation} · {new Intl.DateTimeFormat(locale, {
-                    dateStyle: 'medium',
-                    timeStyle: 'short'
-                  }).format(new Date(observation.checkedAt))}
-                </p>{/if}
               <History history={observation.history} {locale} {now} />
             </div>
           {/if}

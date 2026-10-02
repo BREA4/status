@@ -5,6 +5,7 @@ export default defineConfig({
   timeout: 45_000,
   use: {
     baseURL: process.env.STATUS_E2E_BASE_URL || 'http://127.0.0.1:4173',
+    storageState: process.env.STATUS_E2E_STORAGE_STATE,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure'
   },

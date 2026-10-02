@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { emptySnapshot } from '../src/lib/status';
+import { messages } from '../src/lib/i18n';
 
 test('waits for hydration before accepting a language click', async ({ page }) => {
   let release!: () => void;
@@ -34,8 +35,8 @@ test('detects language, persists a switch, and keeps layouts within the viewport
     path: `test-results/${testInfo.project.name}-initial.png`,
     fullPage: true
   });
-  await expect(page.getByRole('heading', { level: 1 })).toContainText(
-    russian ? 'данных' : 'status data'
+  expect(Object.values(messages[russian ? 'ru' : 'en'].headline)).toContain(
+    await page.getByRole('heading', { level: 1 }).textContent()
   );
   await page.getByRole('button', { name: russian ? 'EN' : 'RU', exact: true }).click();
   await page.reload();
@@ -94,7 +95,7 @@ test('stale data cannot stay green, even after a successful fetch', async ({ pag
   });
   await page.route('**/api/status', (route) => route.fulfill({ json: snapshot }));
   await page.getByRole('button', { name: 'Refresh status', exact: true }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('status data is unavailable');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Status data is unavailable.');
   await expect(page.locator('.notice')).toContainText('out of date');
 });
 

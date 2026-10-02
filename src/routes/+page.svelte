@@ -26,8 +26,13 @@
   $: statuses = snapshot.components.map((component) =>
     currentStatus(component, now, snapshot.incidents)
   );
-  $: overall = aggregate(statuses);
-  $: reporting = statuses.filter((status) => status !== 'unknown').length;
+  $: reportedStatuses = statuses.filter((status) => status !== 'unknown');
+  $: overall = aggregate(reportedStatuses);
+  $: reporting = reportedStatuses.length;
+  $: headlineStatus =
+    overall === 'operational' && reporting < statuses.length
+      ? ('monitored_operational' as const)
+      : overall;
   $: visibleGroups = groups.filter((group) => filter === 'all' || group.category === filter);
   $: allExpanded = visibleGroups.every((group) => opened.has(group.id));
   $: totalPages = Math.max(1, Math.ceil(snapshot.incidents.length / pageSize));
@@ -74,6 +79,7 @@
     } finally {
       now = Date.now();
       refreshing = false;
+      requestAnimationFrame(refreshMotion);
     }
   }
   function dateTime(value: string, language: Locale, client: boolean) {
@@ -163,7 +169,9 @@
       <div class="eyebrow">
         <span class="live-dot" class:inactive={reporting === 0}></span>{t.networkStatus}
       </div>
-      <h1 class="max-w-6xl" id="status-heading">{t.headline[overall]}</h1>
+      <h1 class="max-w-6xl" id="status-heading" aria-live="polite" aria-atomic="true">
+        {t.headline[headlineStatus]}
+      </h1>
       <p class="hero-description">{t.intro}</p>
       <div class="hero-links">
         <a href="#services" class="button button-dark"
@@ -260,7 +268,6 @@
             onToggle={() => toggleGroup(group.id)}
           />{/each}
       </div>
-      <p class="monitoring-note"><Icon name="signal" size={15} /><span>{t.probeNote}</span></p>
     </div>
   </section>
 
