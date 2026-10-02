@@ -73,7 +73,7 @@ test('opens one menu at a time and fits both themes on narrow screens', async ({
         await page.screenshot({
           path: `test-results/${testInfo.project.name}-${colorScheme}-language-menu.png`
         });
-      await page.getByRole('heading', { level: 1 }).click();
+      await page.locator('#services-heading').click();
       await expect(page.getByRole('menu')).toHaveCount(0);
     }
   }

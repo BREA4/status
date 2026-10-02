@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { messages } from '../src/lib/i18n';
 import { emptySnapshot, type Status } from '../src/lib/status';
 import { chooseTheme } from './preferences';
+import { pollStatus } from './status-poll';
 
 const backgrounds = { light: 'rgb(248, 249, 245)', dark: 'rgb(16, 22, 19)' };
 const expectTheme = (page: Page, theme: keyof typeof backgrounds) =>
@@ -112,7 +113,6 @@ test('keeps dark service details and incidents legible without overflowing', asy
   page
 }, testInfo) => {
   const mobile = testInfo.project.name === 'mobile-ru';
-  const t = messages[mobile ? 'ru' : 'en'];
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('/');
   const snapshot = emptySnapshot();
@@ -142,7 +142,8 @@ test('keeps dark service details and incidents legible without overflowing', asy
     }
   ];
   await page.route('**/api/status', (route) => route.fulfill({ json: snapshot }));
-  await page.getByRole('button', { name: t.refresh, exact: true }).click();
+  await expect(page.locator('#language-selector')).toBeEnabled();
+  await pollStatus(page);
   await page.locator('.component-toggle').first().click();
   await expect(page.locator('.history-bars')).toBeVisible();
   await expect(page.locator('.incident')).toBeVisible();
@@ -170,7 +171,7 @@ test('keeps dark service details and incidents legible without overflowing', asy
     };
     return [
       ...document.querySelectorAll(
-        'h1, .hero-description, .status-pill, .component-title, .history-heading, .incident-update p, .incident-state, .button, .preference-trigger'
+        'h1, .status-pill, .component-title, .history-heading, .incident-update p, .incident-state, .button, .preference-trigger'
       )
     ].map((element) => {
       const a = luminance(rgb(getComputedStyle(element).color));

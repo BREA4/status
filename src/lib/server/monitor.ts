@@ -8,7 +8,7 @@ let pending: Promise<Snapshot> | undefined;
 
 export async function getSnapshot(): Promise<Snapshot> {
   if (cached && Date.now() - Date.parse(cached.generatedAt) < CACHE_MS) return cached;
-  // Coalesce simultaneous requests so refresh buttons do not amplify probe traffic.
+  // Coalesce simultaneous requests so background polls do not amplify probe traffic.
   if (!pending)
     pending = collectSnapshot(env)
       .then((result) => (cached = result))

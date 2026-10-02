@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { emptySnapshot } from '../src/lib/status';
 import { messages } from '../src/lib/i18n';
 import { chooseLanguage } from './preferences';
+import { pollStatus } from './status-poll';
 
 test('waits for hydration before accepting a language click', async ({ page }) => {
   let release!: () => void;
@@ -31,7 +32,7 @@ test('detects language, persists a switch, and keeps layouts within the viewport
   expect(response?.status(), 'The server must render a successful page').toBe(200);
   const russian = testInfo.project.name === 'mobile-ru';
   await expect(page.locator('html')).toHaveAttribute('lang', russian ? 'ru' : 'en');
-  await expect(page.locator('.hero-links')).toHaveCSS('opacity', '1');
+  await expect(page.locator('.status-summary')).toBeVisible();
   await page.screenshot({
     path: `test-results/${testInfo.project.name}-initial.png`,
     fullPage: true
@@ -53,7 +54,7 @@ test('detects language, persists a switch, and keeps layouts within the viewport
   expect(dimensions.scroll).toBeLessThanOrEqual(dimensions.width);
   expect(dimensions.lines).toBeLessThanOrEqual(3.1);
   expect(errors).toEqual([]);
-  await expect(page.locator('.hero-links')).toHaveCSS('opacity', '1');
+  await expect(page.locator('.status-summary')).toBeVisible();
   await page.screenshot({ path: `test-results/${testInfo.project.name}.png`, fullPage: true });
 });
 
@@ -70,20 +71,31 @@ test('filters locations, expands protocols and exposes missing history', async (
   await expect(page.locator('.group-toggle[aria-expanded="true"]')).toHaveCount(3);
 });
 
-test('refreshes statuses and reports an unreachable API', async ({ page }) => {
+test('retries failed background updates without exposing refresh controls', async ({ page }) => {
+  await page.clock.install();
   await page.goto('/');
   await chooseLanguage(page, 'en');
-  const snapshot = emptySnapshot();
+  const snapshot = emptySnapshot(await page.evaluate(() => Date.now()));
   snapshot.components.forEach((component) => {
     component.status = 'operational';
     component.checkedAt = snapshot.generatedAt;
   });
   await page.route('**/api/status', (route) => route.fulfill({ json: snapshot }));
-  await page.getByRole('button', { name: 'Refresh status', exact: true }).click();
+  await pollStatus(page);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('All systems operational.');
   await page.route('**/api/status', (route) => route.fulfill({ status: 503, body: 'Unavailable' }));
-  await page.getByRole('button', { name: 'Refresh status', exact: true }).click();
-  await expect(page.locator('.notice')).toContainText('Unable to refresh');
+  await pollStatus(page);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('All systems operational.');
+  await expect(
+    page.locator('.notice, .refresh-announcement, .refresh-button, .update-strip')
+  ).toHaveCount(0);
+  await page.clock.fastForward(6 * 60_000);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Status data is unavailable.');
+  snapshot.generatedAt = new Date(await page.evaluate(() => Date.now())).toISOString();
+  snapshot.components.forEach((component) => (component.checkedAt = snapshot.generatedAt));
+  await page.route('**/api/status', (route) => route.fulfill({ json: snapshot }));
+  await page.clock.fastForward(61_000);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('All systems operational.');
 });
 
 test('stale data cannot stay green, even after a successful fetch', async ({ page }) => {
@@ -95,9 +107,9 @@ test('stale data cannot stay green, even after a successful fetch', async ({ pag
     component.checkedAt = snapshot.generatedAt;
   });
   await page.route('**/api/status', (route) => route.fulfill({ json: snapshot }));
-  await page.getByRole('button', { name: 'Refresh status', exact: true }).click();
+  await pollStatus(page);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Status data is unavailable.');
-  await expect(page.locator('.notice')).toContainText('out of date');
+  await expect(page.locator('.summary-dot')).toHaveClass(/unknown/);
 });
 
 test('incident updates are escaped, localized, and paginated', async ({ page }) => {
@@ -120,7 +132,7 @@ test('incident updates are escaped, localized, and paginated', async ({ page }) 
     ]
   }));
   await page.route('**/api/status', (route) => route.fulfill({ json: snapshot }));
-  await page.getByRole('button', { name: 'Refresh status', exact: true }).click();
+  await pollStatus(page);
   await expect(page.locator('.incident')).toHaveCount(3);
   await expect(page.locator('.incident-update').first()).toContainText('<script>alert(1)</script>');
   await expect(page.locator('.incident-update script')).toHaveCount(0);

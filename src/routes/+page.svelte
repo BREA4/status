@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { groups } from '#lib/catalog.ts';
   import { messages, type Locale } from '#lib/i18n.ts';
-  import { aggregate, currentStatus, isFresh, type Snapshot, type Status } from '#lib/status.ts';
+  import { aggregate, currentStatus, type Snapshot, type Status } from '#lib/status.ts';
   import Icon from '#lib/components/Icon.svelte';
   import ServiceGroup from '#lib/components/ServiceGroup.svelte';
   import ThemeSwitcher from '#lib/components/ThemeSwitcher.svelte';
@@ -16,7 +16,6 @@
   let filter: 'all' | 'website' | 'network' = 'all';
   let opened = new Set(['web']);
   let refreshing = false;
-  let refreshError = false;
   let incidentPage = 0;
   let root: HTMLElement;
   let mounted = false;
@@ -39,7 +38,6 @@
   $: totalPages = Math.max(1, Math.ceil(snapshot.incidents.length / pageSize));
   $: incidentPage = Math.min(incidentPage, totalPages - 1);
   $: incidents = snapshot.incidents.slice(incidentPage * pageSize, (incidentPage + 1) * pageSize);
-  $: stale = !isFresh(snapshot.generatedAt, now);
 
   function setLocale(next: Locale) {
     locale = next;
@@ -75,9 +73,8 @@
       )
         throw new Error('Invalid response');
       snapshot = result;
-      refreshError = false;
     } catch {
-      refreshError = true;
+      // Keep current observations until they expire; the next poll retries silently.
     } finally {
       now = Date.now();
       refreshing = false;
@@ -165,76 +162,17 @@
     </nav>
   </header>
 
-  <section class="hero shell" aria-labelledby="status-heading">
-    <div class="hero-copy">
-      <div class="eyebrow">
-        <span class="live-dot" class:inactive={reporting === 0}></span>{t.networkStatus}
-      </div>
-      <h1 class="max-w-6xl" id="status-heading" aria-live="polite" aria-atomic="true">
-        {t.headline[headlineStatus]}
-      </h1>
-      <p class="hero-description">{t.intro}</p>
-      <div class="hero-links">
-        <a href="#services" class="button button-dark"
-          >{t.services}<Icon name="arrow" size={16} /></a
-        ><a href="#incidents" class="text-link">{t.incidents}<span>↗</span></a>
-      </div>
-    </div>
-    <div class="signal-art" aria-hidden="true">
-      <div class="signal-orbit orbit-outer"></div>
-      <div class="signal-orbit orbit-mid"></div>
-      <div class="signal-orbit orbit-inner"></div>
-      <div class="signal-axis axis-x"></div>
-      <div class="signal-axis axis-y"></div>
-      <div class="signal-center">
-        <svg viewBox="0 0 100 60"><path d="M0 30h27l8-15 12 32 12-39 11 22h30" /></svg>
-      </div>
-      <span class="orbital-node node-one"></span><span class="orbital-node node-two"></span><span
-        class="orbital-node node-three"
-      ></span>
-    </div>
+  <section class="status-summary shell" aria-labelledby="status-heading" data-status={overall}>
+    <span class="status-dot summary-dot {overall}" aria-hidden="true"></span>
+    <h1 class="max-w-6xl" id="status-heading" aria-live="polite" aria-atomic="true">
+      {t.headline[headlineStatus]}
+    </h1>
   </section>
-
-  <div class="shell">
-    <div class="update-strip">
-      <div class="update-info">
-        <Icon name="clock" size={15} /><span
-          >{t.checked}<time datetime={snapshot.generatedAt}
-            >{dateTime(snapshot.generatedAt, locale, mounted)}</time
-          ></span
-        >
-      </div>
-      <div class="update-actions">
-        <span class="auto-refresh">{t.autoRefresh}</span><button
-          class="refresh-button"
-          class:spinning={refreshing}
-          onclick={refresh}
-          disabled={!mounted || refreshing}
-          aria-label={refreshing ? t.refreshing : t.refresh}
-          title={t.refresh}><Icon name="refresh" size={16} /></button
-        >
-      </div>
-    </div>
-    <div class="refresh-announcement sr-only" aria-live="polite">
-      {refreshing ? t.refreshing : refreshError ? t.offline : ''}
-    </div>
-    {#if stale || refreshError}<p class="notice" role="status">
-        {stale ? t.stale : t.offline}
-      </p>{/if}
-  </div>
 
   <section id="services" class="services-layout shell" aria-labelledby="services-heading">
     <aside class="services-aside">
       <h2 id="services-heading">{t.overview}</h2>
       <p>{t.serviceIntro}</p>
-      <div class="coverage">
-        <span class="coverage-number">{reporting}<span>/{statuses.length}</span></span><span
-          >{t.coverageSuffix}</span
-        >
-        <div class="coverage-track">
-          <span style={`width:${(reporting / statuses.length) * 100}%`}></span>
-        </div>
-      </div>
       <div class="legend" aria-label={t.legend}>
         {#each legend as status}<span
             ><span class="status-dot {status}"></span>{t.status[status]}</span

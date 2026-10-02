@@ -30,7 +30,10 @@ for (const locale of ['en', 'ru'] as const) {
       test.skip(testInfo.project.name !== 'desktop', 'Desktop pinning is disabled on mobile.');
       await page.setViewportSize({ width, height: 900 });
       await page.goto('/');
-      await expect(page.locator('.hero-links')).toHaveAttribute('style', /opacity:\s*1/);
+      await expect(page.locator('.service-group').first()).toHaveAttribute(
+        'style',
+        /translate\(0px, 0px\)/
+      );
       await chooseLanguage(page, locale);
       await expectSidebarBoundary(page);
 
