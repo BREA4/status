@@ -1,0 +1,43 @@
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+export function mountMotion(root: HTMLElement) {
+  gsap.registerPlugin(ScrollTrigger);
+  const media = gsap.matchMedia();
+  media.add(
+    '(prefers-reduced-motion: no-preference)',
+    () => {
+      gsap.from('.hero-copy > *', {
+        opacity: 0,
+        y: 16,
+        duration: 0.65,
+        stagger: 0.07,
+        ease: 'power2.out'
+      });
+      gsap.from('.signal-art', { opacity: 0, scale: 0.92, duration: 1, ease: 'power2.out' });
+      // Compact card stacking on entry; contents remain in normal document flow.
+      gsap.from('.service-group', {
+        y: 16,
+        stagger: 0.07,
+        duration: 0.55,
+        ease: 'power2.out',
+        scrollTrigger: { trigger: '.service-list', start: 'top 95%', once: true }
+      });
+    },
+    root
+  );
+  media.add(
+    '(min-width: 1100px) and (prefers-reduced-motion: no-preference)',
+    () => {
+      ScrollTrigger.create({
+        trigger: '.services-layout',
+        start: 'top 100px',
+        end: 'bottom 440px',
+        pin: '.services-aside',
+        pinSpacing: false
+      });
+    },
+    root
+  );
+  return { refresh: () => ScrollTrigger.refresh(), destroy: () => media.revert() };
+}

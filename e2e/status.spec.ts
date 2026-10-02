@@ -6,7 +6,8 @@ test('detects language, persists a switch, and keeps layouts within the viewport
 }, testInfo) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto('/');
+  const response = await page.goto('/');
+  expect(response?.status(), 'The server must render a successful page').toBe(200);
   const russian = testInfo.project.name === 'mobile-ru';
   await expect(page.locator('html')).toHaveAttribute('lang', russian ? 'ru' : 'en');
   await expect(page.locator('.hero-links')).toHaveCSS('opacity', '1');

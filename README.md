@@ -27,6 +27,7 @@ See [docs/monitoring.md](docs/monitoring.md) for the feed contract, all componen
 bun run check
 bun test tests
 bun run build
+bun run test:vercel
 bunx playwright install chromium
 bun run test:e2e
 ```

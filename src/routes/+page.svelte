@@ -1,12 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { gsap } from 'gsap';
-  import { ScrollTrigger } from 'gsap/ScrollTrigger';
   import { groups } from '#lib/catalog.ts';
   import { messages, type Locale } from '#lib/i18n.ts';
   import { aggregate, currentStatus, isFresh, type Snapshot, type Status } from '#lib/status.ts';
   import Icon from '#lib/components/Icon.svelte';
-  import StatusPill from '#lib/components/StatusPill.svelte';
   import ServiceGroup from '#lib/components/ServiceGroup.svelte';
   import type { PageData } from './$types';
 
@@ -21,6 +18,7 @@
   let incidentPage = 0;
   let root: HTMLElement;
   let mounted = false;
+  let refreshMotion = () => {};
   const pageSize = 3;
   const legend: Status[] = ['operational', 'degraded', 'outage', 'maintenance', 'unknown'];
   $: t = messages[locale];
@@ -46,11 +44,11 @@
     if (next.has(id)) next.delete(id);
     else next.add(id);
     opened = next;
-    requestAnimationFrame(() => ScrollTrigger.refresh());
+    requestAnimationFrame(refreshMotion);
   }
   function toggleAll() {
     opened = allExpanded ? new Set() : new Set(visibleGroups.map(({ id }) => id));
-    requestAnimationFrame(() => ScrollTrigger.refresh());
+    requestAnimationFrame(refreshMotion);
   }
   async function refresh() {
     if (refreshing) return;
@@ -87,43 +85,19 @@
   onMount(() => {
     mounted = true;
     now = Date.now();
-    gsap.registerPlugin(ScrollTrigger);
-    const media = gsap.matchMedia();
-    media.add(
-      '(prefers-reduced-motion: no-preference)',
-      () => {
-        gsap.from('.hero-copy > *', {
-          opacity: 0,
-          y: 16,
-          duration: 0.65,
-          stagger: 0.07,
-          ease: 'power2.out'
-        });
-        gsap.from('.signal-art', { opacity: 0, scale: 0.92, duration: 1, ease: 'power2.out' });
-        // Compact card stacking on entry; contents remain in normal document flow.
-        gsap.from('.service-group', {
-          y: 16,
-          stagger: 0.07,
-          duration: 0.55,
-          ease: 'power2.out',
-          scrollTrigger: { trigger: '.service-list', start: 'top 95%', once: true }
-        });
-      },
-      root
-    );
-    media.add(
-      '(min-width: 1100px) and (prefers-reduced-motion: no-preference)',
-      () => {
-        ScrollTrigger.create({
-          trigger: '.services-layout',
-          start: 'top 100px',
-          end: 'bottom 440px',
-          pin: '.services-aside',
-          pinSpacing: false
-        });
-      },
-      root
-    );
+    let destroyed = false;
+    let destroyMotion = () => {};
+    // Motion is optional and browser-only; it must never prevent server rendering.
+    void import('#lib/motion.ts')
+      .then(({ mountMotion }) => {
+        if (destroyed) return;
+        const motion = mountMotion(root);
+        refreshMotion = motion.refresh;
+        destroyMotion = motion.destroy;
+      })
+      .catch(() => {
+        /* The page stays fully usable if the motion chunk fails. */
+      });
     const timer = setInterval(() => {
       now = Date.now();
       if (!document.hidden) void refresh();
@@ -142,7 +116,8 @@
       clearInterval(timer);
       clearInterval(clock);
       document.removeEventListener('visibilitychange', visibility);
-      media.revert();
+      destroyed = true;
+      destroyMotion();
     };
   });
 </script>
@@ -261,7 +236,7 @@
               aria-pressed={filter === category}
               onclick={() => {
                 filter = category as typeof filter;
-                requestAnimationFrame(() => ScrollTrigger.refresh());
+                requestAnimationFrame(refreshMotion);
               }}>{t[category as 'all' | 'website' | 'network']}</button
             >{/each}
         </div>
