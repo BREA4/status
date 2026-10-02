@@ -142,10 +142,12 @@
       <div class="language-switch">
         <button
           class:active={locale === 'en'}
+          disabled={!mounted}
           aria-pressed={locale === 'en'}
           onclick={() => setLocale('en')}>EN</button
         ><button
           class:active={locale === 'ru'}
+          disabled={!mounted}
           aria-pressed={locale === 'ru'}
           onclick={() => setLocale('ru')}>RU</button
         >
@@ -196,7 +198,7 @@
           class="refresh-button"
           class:spinning={refreshing}
           onclick={refresh}
-          disabled={refreshing}
+          disabled={!mounted || refreshing}
           aria-label={refreshing ? t.refreshing : t.refresh}
           title={t.refresh}><Icon name="refresh" size={16} /></button
         >
@@ -233,6 +235,7 @@
         <div class="filters" aria-label={t.services}>
           {#each ['all', 'website', 'network'] as category}<button
               class:active={filter === category}
+              disabled={!mounted}
               aria-pressed={filter === category}
               onclick={() => {
                 filter = category as typeof filter;
@@ -240,7 +243,7 @@
               }}>{t[category as 'all' | 'website' | 'network']}</button
             >{/each}
         </div>
-        <button class="expand-all" onclick={toggleAll}
+        <button class="expand-all" onclick={toggleAll} disabled={!mounted}
           >{allExpanded ? t.collapse : t.expand}<Icon name="plus" size={14} /></button
         >
       </div>
@@ -250,6 +253,7 @@
             {snapshot}
             {locale}
             {now}
+            ready={mounted}
             open={opened.has(group.id)}
             onToggle={() => toggleGroup(group.id)}
           />{/each}
@@ -309,11 +313,11 @@
       {#if totalPages > 1}<div class="pagination">
           <button
             class="button button-light"
-            disabled={incidentPage === 0}
+            disabled={!mounted || incidentPage === 0}
             onclick={() => incidentPage--}>{t.previous}</button
           ><span>{t.page} {incidentPage + 1} {t.of} {totalPages}</span><button
             class="button button-light"
-            disabled={incidentPage === totalPages - 1}
+            disabled={!mounted || incidentPage === totalPages - 1}
             onclick={() => incidentPage++}>{t.next}</button
           >
         </div>{/if}

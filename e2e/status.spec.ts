@@ -1,6 +1,25 @@
 import { expect, test } from '@playwright/test';
 import { emptySnapshot } from '../src/lib/status';
 
+test('waits for hydration before accepting a language click', async ({ page }) => {
+  let release!: () => void;
+  const ready = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/_app/immutable/entry/start*.js', async (route) => {
+    await ready;
+    await route.continue();
+  });
+  await page.goto('/', { waitUntil: 'commit' });
+  try {
+    await expect(page.getByRole('button', { name: 'EN', exact: true })).toBeDisabled();
+  } finally {
+    release();
+  }
+  await page.getByRole('button', { name: 'EN', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+});
+
 test('detects language, persists a switch, and keeps layouts within the viewport', async ({
   page
 }, testInfo) => {

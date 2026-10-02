@@ -10,6 +10,7 @@
   export let locale: Locale;
   export let now: number;
   export let open = false;
+  export let ready = false;
   export let onToggle: () => void;
   let detail: string | null = null;
   $: t = messages[locale];
@@ -25,6 +26,7 @@
 <article class="service-group" class:is-open={open}>
   <button
     class="group-toggle"
+    disabled={!ready}
     aria-expanded={open}
     aria-controls={`group-${group.id}`}
     onclick={onToggle}
@@ -47,6 +49,7 @@
         <div class="component-row" class:detail-open={detail === component.id}>
           <button
             class="component-toggle"
+            disabled={!ready}
             aria-expanded={detail === component.id}
             aria-controls={`detail-${component.id}`}
             onclick={() => (detail = detail === component.id ? null : component.id)}
