@@ -368,7 +368,7 @@ h1 {
   inset: 95px 82px;
   display: grid;
   place-items: center;
-  background: light-dark(#edf3e7, #233221);
+  background: light-dark(#edf3e7, transparent);
   border-radius: 50%;
 }
 .signal-center svg {
