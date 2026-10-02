@@ -82,20 +82,20 @@ test('retries failed background updates without exposing refresh controls', asyn
   });
   await page.route('**/api/status', (route) => route.fulfill({ json: snapshot }));
   await pollStatus(page);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('All systems operational.');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('All systems operational');
   await page.route('**/api/status', (route) => route.fulfill({ status: 503, body: 'Unavailable' }));
   await pollStatus(page);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('All systems operational.');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('All systems operational');
   await expect(
     page.locator('.notice, .refresh-announcement, .refresh-button, .update-strip')
   ).toHaveCount(0);
   await page.clock.fastForward(6 * 60_000);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Status data is unavailable.');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Status unavailable');
   snapshot.generatedAt = new Date(await page.evaluate(() => Date.now())).toISOString();
   snapshot.components.forEach((component) => (component.checkedAt = snapshot.generatedAt));
   await page.route('**/api/status', (route) => route.fulfill({ json: snapshot }));
   await page.clock.fastForward(61_000);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('All systems operational.');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('All systems operational');
 });
 
 test('stale data cannot stay green, even after a successful fetch', async ({ page }) => {
@@ -108,7 +108,7 @@ test('stale data cannot stay green, even after a successful fetch', async ({ pag
   });
   await page.route('**/api/status', (route) => route.fulfill({ json: snapshot }));
   await pollStatus(page);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Status data is unavailable.');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Status unavailable');
   await expect(page.locator('.summary-dot')).toHaveClass(/unknown/);
 });
 

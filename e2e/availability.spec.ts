@@ -109,14 +109,13 @@ test('automatically updates the headline from reported data and incidents', asyn
     await page.clock.fastForward(61_000);
     await expect.poll(() => requests).toBeGreaterThan(previous);
     await expect(headline).toHaveText(t.headline[expected]);
-    const status = expected === 'monitored_operational' ? 'operational' : expected;
-    await expect(dot).toHaveCSS('background-color', colors[colorScheme][status]);
+    await expect(dot).toHaveCSS('background-color', colors[colorScheme][expected]);
     await expect(dot).toHaveCSS('border-radius', '50%');
   }
 
   for (colorScheme of ['light', 'dark'] as const) {
     await page.emulateMedia({ colorScheme });
-    await poll(['operational', 'operational'], 'monitored_operational');
+    await poll(['operational', 'operational'], 'operational');
     await expect(page.locator('.status-pill.unknown').first()).toContainText(t.status.unknown);
     await poll(Array(14).fill('operational'), 'operational');
     await poll(['degraded'], 'degraded');
@@ -124,7 +123,7 @@ test('automatically updates the headline from reported data and incidents', asyn
     await poll(['outage'], 'outage');
     await poll(['maintenance'], 'maintenance');
     await poll(['operational'], 'outage', true);
-    await poll(['operational'], 'monitored_operational');
+    await poll(['operational'], 'operational');
     await poll([], 'unknown');
   }
 

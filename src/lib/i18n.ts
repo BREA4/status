@@ -26,13 +26,12 @@ const en = {
   back: 'Open Breach',
   skip: 'Skip to service status',
   headline: {
-    operational: 'All systems operational.',
-    monitored_operational: 'Monitored services operational.',
-    degraded: 'Some services are degraded.',
-    partial_outage: 'Some services are unavailable.',
-    outage: 'A service interruption is ongoing.',
-    maintenance: 'Maintenance is in progress.',
-    unknown: 'Status data is unavailable.'
+    operational: 'All systems operational',
+    degraded: 'Degraded performance',
+    partial_outage: 'Partial outage',
+    outage: 'Major outage',
+    maintenance: 'Under maintenance',
+    unknown: 'Status unavailable'
   },
   intro:
     'A live view of the network you rely on. Check connections, services, and recent updates in one place.',
@@ -106,13 +105,12 @@ const ru: typeof en = {
   back: 'Открыть Breach',
   skip: 'Перейти к статусу сервисов',
   headline: {
-    operational: 'Все системы работают.',
-    monitored_operational: 'Отслеживаемые сервисы работают.',
-    degraded: 'Некоторые сервисы работают со сбоями.',
-    partial_outage: 'Некоторые сервисы недоступны.',
-    outage: 'В работе сервиса произошел сбой.',
-    maintenance: 'Идут технические работы.',
-    unknown: 'Данные о статусе недоступны.'
+    operational: 'Все системы работают',
+    degraded: 'Снижение производительности',
+    partial_outage: 'Частичный сбой',
+    outage: 'Масштабный сбой',
+    maintenance: 'Технические работы',
+    unknown: 'Статус недоступен'
   },
   intro:
     'Текущее состояние вашей сети. Подключения, сервисы и последние обновления на одной странице.',

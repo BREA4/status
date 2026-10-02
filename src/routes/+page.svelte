@@ -28,11 +28,6 @@
   );
   $: reportedStatuses = statuses.filter((status) => status !== 'unknown');
   $: overall = aggregate(reportedStatuses);
-  $: reporting = reportedStatuses.length;
-  $: headlineStatus =
-    overall === 'operational' && reporting < statuses.length
-      ? ('monitored_operational' as const)
-      : overall;
   $: visibleGroups = groups.filter((group) => filter === 'all' || group.category === filter);
   $: allExpanded = visibleGroups.every((group) => opened.has(group.id));
   $: totalPages = Math.max(1, Math.ceil(snapshot.incidents.length / pageSize));
@@ -165,7 +160,7 @@
   <section class="status-summary shell" aria-labelledby="status-heading" data-status={overall}>
     <span class="status-dot summary-dot {overall}" aria-hidden="true"></span>
     <h1 class="max-w-6xl" id="status-heading" aria-live="polite" aria-atomic="true">
-      {t.headline[headlineStatus]}
+      {t.headline[overall]}
     </h1>
   </section>
 
