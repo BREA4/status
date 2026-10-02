@@ -21,9 +21,7 @@ Set `STATUS_FEED_URL` to an operator-controlled HTTPS JSON URL. Set `STATUS_FEED
       "id": "amsterdam-reality",
       "status": "operational",
       "checkedAt": "2026-10-02T08:59:50Z",
-      "history": [
-        { "date": "2026-10-01", "status": "operational", "uptime": 100 }
-      ]
+      "history": [{ "date": "2026-10-01", "status": "operational", "uptime": 100 }]
     }
   ],
   "incidents": []
@@ -34,12 +32,12 @@ Example timestamps are illustrative. Use actual observation times. Both `generat
 
 Allowed statuses: `operational`, `degraded`, `partial_outage`, `outage`, `maintenance`, `unknown`. A group's state is its worst current observation or active incident. Unknown components prevent an all-operational headline. Scheduled incidents do not affect availability until their status changes to `maintenance`.
 
-| Group | Component IDs |
-| --- | --- |
-| Breach website | `website`, `login`, `account`, `devices`, `routing`, `support` |
-| Moscow control plane | `control-api`, `profile-delivery` |
-| Amsterdam | `amsterdam-reality`, `amsterdam-hysteria2`, `amsterdam-tuic` |
-| Riga | `riga-reality`, `riga-hysteria2`, `riga-tuic` |
+| Group                | Component IDs                                                  |
+| -------------------- | -------------------------------------------------------------- |
+| Breach website       | `website`, `login`, `account`, `devices`, `routing`, `support` |
+| Moscow control plane | `control-api`, `profile-delivery`                              |
+| Amsterdam            | `amsterdam-reality`, `amsterdam-hysteria2`, `amsterdam-tuic`   |
+| Riga                 | `riga-reality`, `riga-hysteria2`, `riga-tuic`                  |
 
 The catalog is in `src/lib/catalog.ts`. Locations and protocols came from the redacted `vpn-backend/docs/operations/current-production-state.md` referenced by vpn-web, dated August 24, 2026. They are service names, not evidence of current health. vpn-infra's staging inventory was empty when inspected.
 
