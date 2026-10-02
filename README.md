@@ -4,6 +4,8 @@ A small bilingual status page built with Bun, SvelteKit 3, Svelte 5, and TypeScr
 
 Production: [breach-status.vercel.app](https://breach-status.vercel.app). Vercel project `gridness-projects/breach-status` is connected to this repository's `main` branch.
 
+Pre-production: [breach-status-git-pre-prod-gridness-projects.vercel.app](https://breach-status-git-pre-prod-gridness-projects.vercel.app), deployed from `pre-prod` using Vercel's Preview environment. It requires access through the project's existing Vercel deployment protection.
+
 ## Run
 
 ```sh
@@ -14,6 +16,12 @@ bun run dev
 English or Russian is selected from `Accept-Language` before the first render. The language buttons save an override in a one-year preference cookie. No account or analytics cookies are used. Fonts are served locally.
 
 Appearance follows the device's light or dark theme by default, including changes while the page is open. The header offers Light, System, and Dark choices. An explicit choice is saved in local storage and applied before the first paint; System clears the override. Switching remains available if storage is blocked.
+
+## Analytics
+
+[Vercel Web Analytics](https://vercel.com/gridness-projects/breach-status/analytics) collects page views only when Vercel's `VERCEL_ENV` is `production`. Local development and Preview deployments, including `pre-prod`, do not load the tracker. The integration uses the generic `@vercel/analytics` SDK because its SvelteKit wrapper still depends on `$app/stores`, which SvelteKit 3 removed. The script and collection endpoint use the same origin and fit the existing Content Security Policy.
+
+Page URLs omit query strings and fragments before collection. No custom events are sent. Vercel documents its cookie-free visitor counting in its [Web Analytics privacy documentation](https://vercel.com/docs/analytics/privacy-policy).
 
 ## Monitoring
 
@@ -32,6 +40,7 @@ bun run build
 bun run test:vercel
 bunx playwright install chromium
 bun run test:e2e
+VERCEL_ENV=production bun run test:e2e -- e2e/analytics.spec.ts
 ```
 
 GitHub Actions runs the same checks on pushes and pull requests. Browser tests cover desktop and mobile, language detection and persistence, filters, component details, refresh failures, stale data, and incidents.
@@ -45,3 +54,7 @@ Import `BREA4/status` in Vercel, choose the SvelteKit framework, and use `main` 
 The Vercel GitHub app needs access to the repository. Vercel's plan must allow importing a private organization repository. Keep the repository private. Optional server environment variables are listed in `.env.example`; never prefix the feed token with `PUBLIC_`.
 
 After import, pushes to `main` deploy to production and pull requests receive preview deployments. No monitoring feed is required to build or deploy; public website probes work by default.
+
+Push changes to `pre-prod` to update the stable pre-production URL. GitHub Actions validates both `pre-prod` and `main`. After reviewing pre-production, merge `pre-prod` into `main` to publish the same code to production. Vercel rebuilds with the Production environment.
+
+The current Hobby account uses the standard Preview environment for pre-production. Named custom environments require Pro or Enterprise. To add a pre-production-only feed later, scope its environment variables to Preview and the `pre-prod` Git branch, then redeploy that branch. The current pre-production deployment uses public read-only checks and has no monitoring credentials.

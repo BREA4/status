@@ -1,7 +1,7 @@
 name: Validate
 on:
   push:
-    branches: [main]
+    branches: [main, pre-prod]
   pull_request:
 permissions:
   contents: read
@@ -23,6 +23,9 @@ jobs:
       - run: bun run test:vercel
       - run: bunx playwright install --with-deps chromium
       - run: bun run test:e2e
+      - run: bun run test:e2e -- e2e/analytics.spec.ts
+        env:
+          VERCEL_ENV: production
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: failure()
         with:
