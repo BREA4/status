@@ -30,11 +30,15 @@ export function mountMotion(root: HTMLElement) {
     '(min-width: 1100px) and (prefers-reduced-motion: no-preference)',
     () => {
       ScrollTrigger.create({
-        trigger: '.services-layout',
+        trigger: '.services-aside',
         start: 'top 100px',
-        end: 'bottom 440px',
+        endTrigger: '.services-main',
+        // Stop when the sidebar's bottom reaches the end of the service list.
+        end: () =>
+          `bottom ${100 + root.querySelector<HTMLElement>('.services-aside')!.offsetHeight}px`,
         pin: '.services-aside',
-        pinSpacing: false
+        pinSpacing: false,
+        invalidateOnRefresh: true
       });
     },
     root
