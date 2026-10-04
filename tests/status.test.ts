@@ -4,11 +4,14 @@ import {
   aggregate,
   currentStatus,
   dailyHistory,
+  dailyUptime,
   emptySnapshot,
   feedSchema,
   isFresh,
+  historyUptime,
   summarize,
-  type Incident
+  type Incident,
+  type Daily
 } from '../src/lib/status';
 
 const now = Date.parse('2026-10-02T09:00:00Z');
@@ -88,6 +91,46 @@ describe('availability', () => {
     expect(days[88].uptime).toBe(99.2);
     expect(days[89]).toEqual({ date: '2026-10-02', status: 'unknown', uptime: null });
     expect(days.filter((day) => day.uptime !== null)).toHaveLength(1);
+  });
+  test('calculates availability over recorded days before 90 days are available', () => {
+    const healthy: Daily = { date: '2026-10-02', status: 'operational', uptime: null };
+    expect(historyUptime([healthy], now)).toBe(100);
+    expect(
+      historyUptime(
+        [
+          healthy,
+          { date: '2026-10-01', status: 'degraded', uptime: null },
+          { date: '2026-09-30', status: 'outage', uptime: null },
+          { date: '2026-09-29', status: 'unknown', uptime: null }
+        ],
+        now
+      )
+    ).toBeCloseTo((2 / 3) * 100);
+    expect(historyUptime([{ ...healthy, status: 'outage' }], now)).toBe(0);
+    expect(historyUptime([{ ...healthy, status: 'unknown' }], now)).toBeNull();
+    expect(historyUptime([], now)).toBeNull();
+  });
+  test('preserves measured daily percentages and excludes days outside the history window', () => {
+    const healthy: Daily = { date: '2026-10-02', status: 'operational', uptime: null };
+    expect(
+      historyUptime(
+        [
+          healthy,
+          { date: '2026-10-01', status: 'partial_outage', uptime: 99.98 },
+          { date: '2026-07-04', status: 'outage', uptime: 0 },
+          { date: '2026-10-03', status: 'outage', uptime: 0 }
+        ],
+        now
+      )
+    ).toBeCloseTo(99.99);
+    expect(dailyUptime({ ...healthy, uptime: 0 })).toBe(0);
+    expect(dailyUptime({ ...healthy, status: 'maintenance' })).toBe(0);
+    expect(dailyUptime({ ...healthy, status: 'partial_outage' })).toBe(0);
+    const fullHistory = dailyHistory([], now).map((day, index) => ({
+      ...day,
+      status: index === 0 ? ('outage' as const) : ('operational' as const)
+    }));
+    expect(historyUptime(fullHistory, now)).toBeCloseTo((89 / 90) * 100);
   });
   test('rejects invalid feed components and duplicate observations', () => {
     const component = {

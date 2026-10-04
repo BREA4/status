@@ -127,6 +127,20 @@ export function dailyHistory(history: Daily[], now = Date.now()): Daily[] {
     return history.find((day) => day.date === date) ?? { date, status: 'unknown', uptime: null };
   });
 }
+export function dailyUptime(day: Daily): number | null {
+  if (day.uptime !== null) return day.uptime;
+  if (day.status === 'unknown') return null;
+  // Successful but slow checks still count as available. Other known states count as unavailable.
+  return day.status === 'operational' || day.status === 'degraded' ? 100 : 0;
+}
+export function historyUptime(history: Daily[], now = Date.now()): number | null {
+  const percentages = dailyHistory(history, now)
+    .map(dailyUptime)
+    .filter((uptime): uptime is number => uptime !== null);
+  return percentages.length
+    ? percentages.reduce((total, uptime) => total + uptime, 0) / percentages.length
+    : null;
+}
 export function emptySnapshot(now = Date.now()): Snapshot {
   return {
     generatedAt: new Date(now).toISOString(),

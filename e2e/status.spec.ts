@@ -74,7 +74,7 @@ test('filters locations, expands protocols and exposes missing history', async (
   await expect(page.locator('.group-toggle[aria-expanded="true"]')).toHaveCount(3);
 });
 
-test('shows a recorded day without inventing an uptime percentage', async ({ page }) => {
+test('shows 100% for one operational day while keeping unrecorded days empty', async ({ page }) => {
   await page.goto('/');
   await chooseLanguage(page, 'en');
   const snapshot = emptySnapshot();
@@ -86,10 +86,82 @@ test('shows a recorded day without inventing an uptime percentage', async ({ pag
   await pollStatus(page);
   await page.getByRole('button', { name: /Breach app/ }).click();
   await page.getByRole('button', { name: /Update server/ }).click();
-  await expect(page.locator('.history-heading')).toHaveText('90-day history1 / 90');
+  await expect(page.locator('.history-heading')).toHaveText('90-day history100%');
   await expect(page.locator('.history-bar.operational')).toHaveCount(1);
   await expect(page.locator('.history-bar.unknown')).toHaveCount(89);
-  await expect(page.locator('.history-bar.operational')).toHaveAttribute('title', /Operational$/);
+  await expect(page.locator('.history-bar.operational')).toHaveAttribute(
+    'title',
+    /Operational · 100% availability from recorded status$/
+  );
+  await expect(page.locator('.history-bars')).toHaveAttribute(
+    'aria-label',
+    '90-day history. Uptime over recorded days: 100%'
+  );
+  await expect(page.locator('.history-bar.unknown').first()).toHaveAttribute(
+    'title',
+    /No measurement$/
+  );
+});
+
+test('shows compact daily uptime and averages measured and recorded days', async ({ page }) => {
+  await page.goto('/');
+  await chooseLanguage(page, 'en');
+  const snapshot = emptySnapshot();
+  const midnight = Date.parse(`${snapshot.generatedAt.slice(0, 10)}T00:00:00Z`);
+  const component = snapshot.components.find(({ id }) => id === 'update-server')!;
+  component.history = [99, 99.9, 99.98, 100, null].map((uptime, index) => ({
+    date: new Date(midnight - (4 - index) * 86_400_000).toISOString().slice(0, 10),
+    status: 'operational',
+    uptime
+  }));
+  await page.route('**/api/status', (route) => route.fulfill({ json: snapshot }));
+  await pollStatus(page);
+  await page.getByRole('button', { name: /Breach app/ }).click();
+  await page.getByRole('button', { name: /Update server/ }).click();
+  await expect(page.locator('.history-heading')).toHaveText('90-day history99.78%');
+  await expect(page.locator('.history-bars')).toHaveAttribute(
+    'aria-label',
+    '90-day history. Uptime over recorded days: 99.78%'
+  );
+  const bars = page.locator('.history-bar.operational');
+  for (const [index, percentage] of ['99%', '99.9%', '99.98%', '100%'].entries()) {
+    await expect(bars.nth(index)).toHaveAttribute(
+      'title',
+      new RegExp(`${percentage.replace('.', '\\.')} measured uptime$`)
+    );
+  }
+  await expect(bars.nth(4)).toHaveAttribute('title', /100% availability from recorded status$/);
+  await expect(page.locator('.history-bar.unknown')).toHaveCount(85);
+  await chooseLanguage(page, 'ru');
+  await expect(page.locator('.history-heading')).toHaveText('История за 90 дней99,78%');
+  await expect(bars.nth(2)).toHaveAttribute('title', /99,98% измеренная доступность$/);
+});
+
+test('recorded downtime reduces uptime without counting missing or unknown days', async ({
+  page
+}) => {
+  await page.goto('/');
+  await chooseLanguage(page, 'en');
+  const snapshot = emptySnapshot();
+  const midnight = Date.parse(`${snapshot.generatedAt.slice(0, 10)}T00:00:00Z`);
+  const component = snapshot.components.find(({ id }) => id === 'update-server')!;
+  component.history = ['operational', 'degraded', 'outage', 'unknown'].map((status, index) => ({
+    date: new Date(midnight - (3 - index) * 86_400_000).toISOString().slice(0, 10),
+    status: status as typeof component.status,
+    uptime: null
+  }));
+  await page.route('**/api/status', (route) => route.fulfill({ json: snapshot }));
+  await pollStatus(page);
+  await page.getByRole('button', { name: /Breach app/ }).click();
+  await page.getByRole('button', { name: /Update server/ }).click();
+  await expect(page.locator('.history-heading')).toHaveText('90-day history66.67%');
+  await expect(page.locator('.history-bar.outage')).toHaveAttribute(
+    'title',
+    /0% availability from recorded status$/
+  );
+  component.history = component.history.filter(({ status }) => status === 'unknown');
+  await pollStatus(page);
+  await expect(page.locator('.history-heading')).toHaveText('90-day historyNo data');
 });
 
 test('history cron rejects public requests before collecting checks', async ({ request }) => {
