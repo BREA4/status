@@ -1,6 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e',
+  outputDir: 'test-results/browser',
+  testIgnore: 'flags-disabled.spec.ts',
   fullyParallel: true,
   timeout: 45_000,
   use: {

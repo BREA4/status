@@ -1,7 +1,7 @@
 <script lang="ts">
   import { messages, type Locale } from '#lib/i18n.ts';
-  import type { Status } from '#lib/status.ts';
-  export let status: Status;
+  import type { SummaryStatus } from '#lib/status.ts';
+  export let status: SummaryStatus;
   export let locale: Locale;
 </script>
 

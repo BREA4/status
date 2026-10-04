@@ -27,6 +27,7 @@ const en = {
   skip: 'Skip to service status',
   headline: {
     operational: 'All systems operational',
+    incomplete: 'Monitoring incomplete',
     degraded: 'Degraded performance',
     partial_outage: 'Partial outage',
     outage: 'Major outage',
@@ -55,6 +56,7 @@ const en = {
   measured: 'measured uptime',
   status: {
     operational: 'Operational',
+    incomplete: 'Monitoring incomplete',
     degraded: 'Degraded',
     partial_outage: 'Partial outage',
     outage: 'Outage',
@@ -94,8 +96,7 @@ const en = {
   themeShort: { light: 'Light', system: 'System', dark: 'Dark' },
   legend: 'Status legend',
   close: 'Close',
-  historyHint:
-    'Daily availability appears when measured history is connected. Empty days have no data.',
+  historyHint: 'Each day shows its worst recorded status. Empty days have no data.',
   region: 'Region',
   protocol: 'Protocol',
   noMatches: 'No services in this view.'
@@ -106,6 +107,7 @@ const ru: typeof en = {
   skip: 'Перейти к статусу сервисов',
   headline: {
     operational: 'Все системы работают',
+    incomplete: 'Данные мониторинга неполные',
     degraded: 'Снижение производительности',
     partial_outage: 'Частичный сбой',
     outage: 'Масштабный сбой',
@@ -134,6 +136,7 @@ const ru: typeof en = {
   measured: 'измеренная доступность',
   status: {
     operational: 'Работает',
+    incomplete: 'Неполные данные',
     degraded: 'Работает со сбоями',
     partial_outage: 'Частичный сбой',
     outage: 'Недоступен',
@@ -174,7 +177,7 @@ const ru: typeof en = {
   legend: 'Обозначения',
   close: 'Закрыть',
   historyHint:
-    'Доступность по дням появится после подключения истории измерений. Пустые дни означают отсутствие данных.',
+    'Каждый день показывает худший зарегистрированный статус. Пустые дни означают отсутствие данных.',
   region: 'Регион',
   protocol: 'Протокол',
   noMatches: 'В этой категории нет сервисов.'

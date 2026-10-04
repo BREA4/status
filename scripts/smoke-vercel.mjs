@@ -15,3 +15,5 @@ for (const locale of ['en', 'ru']) {
   assert.ok(html.includes('id="status-heading"'));
   console.log(`Packaged Vercel SSR: ${locale} passed`);
 }
+// Finish the CLI smoke check even if a credentialed flags client keeps polling.
+process.exit(0);

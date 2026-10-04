@@ -6,7 +6,8 @@
   export let now: number;
   $: days = dailyHistory(history, now);
   $: t = messages[locale];
-  $: known = days.filter((day) => day.uptime !== null);
+  $: recordedDates = new Set(history.map((day) => day.date));
+  $: known = days.filter((day) => recordedDates.has(day.date));
   function label(day: Daily) {
     return `${new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(day.date))}: ${t.status[day.status]}${day.uptime !== null ? ` · ${day.uptime.toFixed(2)}%` : ''}`;
   }

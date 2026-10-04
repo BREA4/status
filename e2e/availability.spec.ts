@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { messages } from '../src/lib/i18n';
 import { emptySnapshot, type Status } from '../src/lib/status';
+import { componentIds } from '../src/lib/catalog';
 
 test.use({ reducedMotion: 'reduce' });
 
@@ -66,6 +67,7 @@ test('automatically updates the headline from reported data and incidents', asyn
   const colors = {
     light: {
       operational: 'rgb(119, 163, 98)',
+      incomplete: 'rgb(146, 155, 145)',
       degraded: 'rgb(200, 152, 61)',
       partial_outage: 'rgb(175, 83, 73)',
       outage: 'rgb(175, 83, 73)',
@@ -74,6 +76,7 @@ test('automatically updates the headline from reported data and incidents', asyn
     },
     dark: {
       operational: 'rgb(172, 211, 135)',
+      incomplete: 'rgb(135, 151, 129)',
       degraded: 'rgb(232, 189, 110)',
       partial_outage: 'rgb(237, 151, 138)',
       outage: 'rgb(237, 151, 138)',
@@ -115,20 +118,26 @@ test('automatically updates the headline from reported data and incidents', asyn
 
   for (colorScheme of ['light', 'dark'] as const) {
     await page.emulateMedia({ colorScheme });
-    await poll(['operational', 'operational'], 'operational');
+    await poll(['operational', 'operational'], 'incomplete');
     await expect(page.locator('.status-pill.unknown').first()).toContainText(t.status.unknown);
-    await poll(Array(14).fill('operational'), 'operational');
+    await expect(page.locator('[aria-controls="group-web"] .group-state')).toContainText(
+      t.status.incomplete
+    );
+    await expect(page.locator('[aria-controls="detail-website"] .status-pill')).toContainText(
+      t.status.operational
+    );
+    await poll(Array(componentIds.length).fill('operational'), 'operational');
     await poll(['degraded'], 'degraded');
     await poll(['partial_outage'], 'partial_outage');
     await poll(['outage'], 'outage');
     await poll(['maintenance'], 'maintenance');
     await poll(['operational'], 'outage', true);
-    await poll(['operational'], 'operational');
+    await poll(['operational'], 'incomplete');
     await poll([], 'unknown');
   }
 
   // Fresh successes must expire even when the API can no longer be reached.
-  await poll(Array(14).fill('operational'), 'operational');
+  await poll(Array(componentIds.length).fill('operational'), 'operational');
   await page.route('**/api/status', (route) => route.fulfill({ status: 503, body: 'Unavailable' }));
   await page.clock.fastForward(6 * 60_000);
   await expect(headline).toHaveText(t.headline.unknown);

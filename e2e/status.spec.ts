@@ -61,6 +61,9 @@ test('detects language, persists a switch, and keeps layouts within the viewport
 test('filters locations, expands protocols and exposes missing history', async ({ page }) => {
   await page.goto('/');
   await chooseLanguage(page, 'en');
+  // Keep this UI test independent of the linked project's changing service flags.
+  await page.route('**/api/status', (route) => route.fulfill({ json: emptySnapshot() }));
+  await pollStatus(page);
   await page.getByRole('button', { name: 'Network', exact: true }).click();
   await expect(page.locator('.service-group')).toHaveCount(3);
   await page.getByRole('button', { name: /Amsterdam/ }).click();
@@ -69,6 +72,33 @@ test('filters locations, expands protocols and exposes missing history', async (
   await expect(page.locator('.history-bar.unknown')).toHaveCount(90);
   await page.getByRole('button', { name: 'Expand all', exact: false }).click();
   await expect(page.locator('.group-toggle[aria-expanded="true"]')).toHaveCount(3);
+});
+
+test('shows a recorded day without inventing an uptime percentage', async ({ page }) => {
+  await page.goto('/');
+  await chooseLanguage(page, 'en');
+  const snapshot = emptySnapshot();
+  const component = snapshot.components.find(({ id }) => id === 'update-server')!;
+  component.history = [
+    { date: snapshot.generatedAt.slice(0, 10), status: 'operational', uptime: null }
+  ];
+  await page.route('**/api/status', (route) => route.fulfill({ json: snapshot }));
+  await pollStatus(page);
+  await page.getByRole('button', { name: /Breach app/ }).click();
+  await page.getByRole('button', { name: /Update server/ }).click();
+  await expect(page.locator('.history-heading')).toHaveText('90-day history1 / 90');
+  await expect(page.locator('.history-bar.operational')).toHaveCount(1);
+  await expect(page.locator('.history-bar.unknown')).toHaveCount(89);
+  await expect(page.locator('.history-bar.operational')).toHaveAttribute('title', /Operational$/);
+});
+
+test('history cron rejects public requests before collecting checks', async ({ request }) => {
+  const credentials: Record<string, string>[] = [{}, { Authorization: 'Bearer invalid' }];
+  for (const headers of credentials) {
+    const response = await request.get('/api/cron/history', { headers });
+    expect(response.status()).toBe(401);
+    expect(await response.json()).toEqual({ error: 'Unauthorized' });
+  }
 });
 
 test('retries failed background updates without exposing refresh controls', async ({ page }) => {

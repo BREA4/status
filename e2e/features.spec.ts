@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { chooseLanguage } from './preferences';
+import { emptySnapshot } from '../src/lib/status';
+import { pollStatus } from './status-poll';
 
 test('the global contact support flag controls the whole card in both languages', async ({
   page
@@ -17,4 +19,33 @@ test('the global contact support flag controls the whole card in both languages'
     );
     await expect(page.locator('.site-footer')).toBeVisible();
   }
+});
+
+test('polling removes disabled services and empty groups, then restores re-enabled services', async ({
+  page
+}) => {
+  await page.goto('/');
+  await chooseLanguage(page, 'en');
+  let snapshot = emptySnapshot();
+  snapshot.components = snapshot.components.filter(({ id }) => id === 'update-server');
+  snapshot.components[0].status = 'operational';
+  snapshot.components[0].checkedAt = snapshot.generatedAt;
+  await page.route('**/api/status', (route) => route.fulfill({ json: snapshot }));
+  await pollStatus(page);
+  await expect(page.locator('.service-group')).toHaveCount(1);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('All systems operational');
+  await page.getByRole('button', { name: /Breach app/ }).click();
+  await expect(page.locator('.component-title')).toHaveText('Update server');
+  await page.locator('.component-toggle').click();
+  await expect(page.locator('.history-bars')).toBeVisible();
+  snapshot = { ...snapshot, components: [] };
+  await pollStatus(page);
+  await expect(page.locator('.service-group')).toHaveCount(0);
+  await expect(page.locator('.history-bars')).toHaveCount(0);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Status unavailable');
+  snapshot = emptySnapshot();
+  snapshot.components = snapshot.components.filter(({ id }) => id === 'website');
+  await pollStatus(page);
+  await expect(page.locator('.service-group')).toHaveCount(1);
+  await expect(page.locator('.component-title')).toHaveText('Website');
 });

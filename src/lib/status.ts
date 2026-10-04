@@ -11,6 +11,7 @@ export const statusSchema = z.enum([
   'unknown'
 ]);
 export type Status = z.infer<typeof statusSchema>;
+export type SummaryStatus = Status | 'incomplete';
 const localized = z.object({ en: z.string().min(1).max(2000), ru: z.string().min(1).max(2000) });
 const timestamp = z.iso.datetime({ offset: true });
 export const dailySchema = z.object({
@@ -73,6 +74,7 @@ export interface ComponentStatus {
 }
 export interface Snapshot {
   generatedAt: string;
+  historyRecording?: 'recorded' | 'unconfigured' | 'unavailable';
   components: ComponentStatus[];
   incidents: Incident[];
   feed: 'connected' | 'unconfigured' | 'unavailable';
@@ -110,6 +112,12 @@ export function aggregate(statuses: Status[]): Status {
     if (statuses.includes(status)) return status;
   }
   return statuses.length ? 'operational' : 'unknown';
+}
+export function summarize(statuses: Status[]): SummaryStatus {
+  const status = aggregate(statuses);
+  return status === 'unknown' && statuses.some((status) => status !== 'unknown')
+    ? 'incomplete'
+    : status;
 }
 export function dailyHistory(history: Daily[], now = Date.now()): Daily[] {
   const today = new Date(now).toISOString().slice(0, 10);

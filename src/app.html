@@ -1,16 +1,19 @@
 <!doctype html>
-<html lang="%lang%">
+<html lang="%lang%" data-theme="%theme%" data-theme-selector="%theme-selector%">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="light dark" />
+    <meta name="color-scheme" content="%color-scheme%" />
     <meta name="theme-color" content="#f8f9f5" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#101613" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="%dark-theme-color%" media="(prefers-color-scheme: dark)" />
     <script nonce="%sveltekit.nonce%">
       // Apply an explicit choice before styles and page content can paint.
       try {
-        const theme = localStorage.getItem('breach-theme');
+        const theme =
+          document.documentElement.dataset.themeSelector === 'enabled'
+            ? localStorage.getItem('breach-theme')
+            : 'light';
         if (theme === 'light' || theme === 'dark') {
           document.documentElement.dataset.theme = theme;
           document.querySelector('meta[name="color-scheme"]').content = theme;

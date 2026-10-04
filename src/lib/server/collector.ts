@@ -7,32 +7,25 @@ import {
 } from '#lib/status.ts';
 import incidentData from '../../data/incidents.json';
 import { incidentSchema } from '#lib/status.ts';
+import { componentIds } from '#lib/catalog.ts';
+import { boundedText } from './http';
+import { checkUpdateServer } from './updates';
+import { z } from 'zod';
+
+const readinessSchema = z.object({ status: z.literal('ready') });
+const capabilitiesSchema = z.object({
+  registration_enabled: z.boolean(),
+  passkey_login: z.boolean(),
+  passkey_registration: z.boolean()
+});
 
 const targets = [
   { id: 'website', url: 'https://brea4.space/', marker: 'Breach' },
-  { id: 'login', url: 'https://brea4.space/login/password', marker: 'password' }
+  { id: 'login', url: 'https://brea4.space/login/password', marker: 'password' },
+  { id: 'update-server', url: 'https://breach-updates.vercel.app/appcast.xml', marker: '' },
+  { id: 'control-api', url: 'https://brea4.space/api/v1/public/capabilities', marker: '' },
+  { id: 'profile-delivery', url: 'https://sync.fatconfig.space/readyz', marker: '' }
 ];
-
-async function boundedText(response: Response, maxBytes = 512_000): Promise<string> {
-  // ASVS 2.2.1: enforce response limits while streaming, not after allocating the body.
-  if (!response.body) throw new Error('Empty response');
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let size = 0;
-  let result = '';
-  try {
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      size += value.byteLength;
-      if (size > maxBytes) throw new Error('Response limit exceeded');
-      result += decoder.decode(value, { stream: true });
-    }
-    return result + decoder.decode();
-  } finally {
-    await reader.cancel();
-  }
-}
 
 async function probe(
   target: (typeof targets)[number],
@@ -48,11 +41,24 @@ async function probe(
     history: []
   };
   try {
+    if (target.id === 'update-server') {
+      const status = await checkUpdateServer(request);
+      base.latency = Math.round(performance.now() - start);
+      return {
+        ...base,
+        status: status === 'operational' && base.latency > 3000 ? 'degraded' : status
+      };
+    }
     // ASVS 1.2.2: fixed, HTTPS targets; redirects cannot send probes elsewhere.
     const response = await request(target.url, {
       redirect: 'error',
       signal: AbortSignal.timeout(8_000),
-      headers: { 'User-Agent': 'Breach-Status/1.0', Accept: 'text/html' },
+      headers: {
+        'User-Agent': 'Breach-Status/1.0',
+        Accept: ['profile-delivery', 'control-api'].includes(target.id)
+          ? 'application/json'
+          : 'text/html'
+      },
       cache: 'no-store'
     });
     base.latency = Math.round(performance.now() - start);
@@ -65,6 +71,18 @@ async function probe(
       return { ...base, status: 'outage' };
     }
     const body = await boundedText(response);
+    if (target.id === 'profile-delivery' || target.id === 'control-api') {
+      // ASVS 13.2.4, 2.2.1: fixed public endpoints and validated deployed Go contracts.
+      // BREA4/vpn-backend PR #2, httpapi/server.go and httpapi/account_registration.go.
+      const isJson =
+        response.headers.get('content-type')?.split(';')[0].trim() === 'application/json';
+      const schema = target.id === 'profile-delivery' ? readinessSchema : capabilitiesSchema;
+      const ready = isJson && schema.safeParse(JSON.parse(body)).success;
+      return {
+        ...base,
+        status: ready ? (base.latency > 3000 ? 'degraded' : 'operational') : 'unknown'
+      };
+    }
     return {
       ...base,
       status: body.toLowerCase().includes(target.marker.toLowerCase())
@@ -85,16 +103,21 @@ export interface MonitorConfig {
 }
 export async function collectSnapshot(
   env: MonitorConfig = {},
-  request: typeof fetch = fetch
+  request: typeof fetch = fetch,
+  enabledServiceIds: string[] = componentIds
 ): Promise<Snapshot> {
   const snapshot = emptySnapshot();
-  const observations = await Promise.all(targets.map((target) => probe(target, request)));
+  const enabled = new Set(enabledServiceIds);
+  snapshot.components = snapshot.components.filter(({ id }) => enabled.has(id));
+  const observations = await Promise.all(
+    targets.filter(({ id }) => enabled.has(id)).map((target) => probe(target, request))
+  );
   for (const observation of observations)
     snapshot.components[snapshot.components.findIndex(({ id }) => id === observation.id)] =
       observation;
   const localIncidents = incidentSchema.array().parse(incidentData);
   snapshot.incidents = localIncidents;
-  if (env.STATUS_FEED_URL) {
+  if (env.STATUS_FEED_URL && snapshot.components.length > 0) {
     try {
       // The URL is operator configuration, never a request parameter. Only HTTPS,
       // no credentials in URLs, no redirects, bounded fetch and strict schema.
@@ -119,7 +142,8 @@ export async function collectSnapshot(
       const feedFresh = isFresh(feed.generatedAt);
       snapshot.feed = feedFresh ? 'connected' : 'unavailable';
       for (const component of feed.components) {
-        const current = snapshot.components.find((item) => item.id === component.id)!;
+        const current = snapshot.components.find((item) => item.id === component.id);
+        if (!current) continue;
         current.history = component.history.filter(
           (day) => day.date <= new Date().toISOString().slice(0, 10)
         );
@@ -141,6 +165,12 @@ export async function collectSnapshot(
       snapshot.feed = 'unavailable';
     }
   }
+  snapshot.incidents = snapshot.incidents.flatMap((incident) => {
+    if (snapshot.components.length === 0) return [];
+    if (incident.components.length === 0) return [incident];
+    const components = incident.components.filter((id) => enabled.has(id));
+    return components.length ? [{ ...incident, components }] : [];
+  });
   snapshot.incidents.sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt));
   snapshot.generatedAt = new Date().toISOString();
   return snapshot;

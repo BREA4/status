@@ -18,6 +18,8 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "test": "bun test tests",
     "test:e2e": "playwright test",
+    "test:flags": "playwright test --config playwright.flags.config.ts",
+    "flags:configure": "bun scripts/configure-flags.ts",
     "test:vercel": "node --no-experimental-detect-module scripts/smoke-vercel.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
@@ -26,9 +28,11 @@
     "@fontsource-variable/golos-text": "5.3.0",
     "@fontsource-variable/outfit": "5.3.0",
     "@vercel/analytics": "2.0.1",
+    "@vercel/blob": "2.8.0",
     "@vercel/flags-core": "1.9.0",
     "@vercel/oidc": "3.5.0",
     "gsap": "3.15.0",
+    "saxes": "6.0.0",
     "zod": "4.6.5"
   },
   "devDependencies": {

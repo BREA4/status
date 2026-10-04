@@ -4,7 +4,7 @@ export interface ComponentDefinition {
   id: string;
   name: Localized;
   description: Localized;
-  probe?: 'website' | 'login';
+  probe?: 'website' | 'login' | 'updates';
 }
 export interface ServiceGroup {
   id: string;
@@ -80,6 +80,21 @@ export const groups: ServiceGroup[] = [
         id: 'support',
         name: text('Support', 'Поддержка'),
         description: text('Support requests in your account', 'Обращения из личного кабинета')
+      }
+    ]
+  },
+  {
+    id: 'app',
+    name: text('Breach app', 'Приложение Breach'),
+    subtitle: text('Software updates', 'Обновления приложения'),
+    code: 'APP',
+    category: 'website',
+    components: [
+      {
+        id: 'update-server',
+        name: text('Update server', 'Сервер обновлений'),
+        description: text('macOS update feed and downloads', 'Лента обновлений macOS и загрузки'),
+        probe: 'updates'
       }
     ]
   },

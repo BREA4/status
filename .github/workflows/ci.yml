@@ -23,6 +23,7 @@ jobs:
       - run: bun run test:vercel
       - run: bunx playwright install --with-deps chromium
       - run: bun run test:e2e
+      - run: bun run test:flags
       - run: bun run test:e2e -- e2e/analytics.spec.ts
         env:
           VERCEL_ENV: production

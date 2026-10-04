@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { groups } from '#lib/catalog.ts';
   import { messages, type Locale } from '#lib/i18n.ts';
-  import { aggregate, currentStatus, type Snapshot, type Status } from '#lib/status.ts';
+  import { summarize, currentStatus, type Snapshot, type Status } from '#lib/status.ts';
   import Icon from '#lib/components/Icon.svelte';
   import ServiceGroup from '#lib/components/ServiceGroup.svelte';
   import ThemeSwitcher from '#lib/components/ThemeSwitcher.svelte';
@@ -26,9 +26,16 @@
   $: statuses = snapshot.components.map((component) =>
     currentStatus(component, now, snapshot.incidents)
   );
-  $: reportedStatuses = statuses.filter((status) => status !== 'unknown');
-  $: overall = aggregate(reportedStatuses);
-  $: visibleGroups = groups.filter((group) => filter === 'all' || group.category === filter);
+  $: overall = summarize(statuses);
+  $: enabledServices = new Set(snapshot.components.map(({ id }) => id));
+  $: visibleGroups = groups
+    .map((group) => ({
+      ...group,
+      components: group.components.filter(({ id }) => enabledServices.has(id))
+    }))
+    .filter(
+      (group) => group.components.length > 0 && (filter === 'all' || group.category === filter)
+    );
   $: allExpanded = visibleGroups.every((group) => opened.has(group.id));
   $: totalPages = Math.max(1, Math.ceil(snapshot.incidents.length / pageSize));
   $: incidentPage = Math.min(incidentPage, totalPages - 1);
@@ -112,11 +119,17 @@
         void refresh();
       }
     };
+    // Fetch immediately and after returning to the page or regaining connectivity.
+    void refresh();
     document.addEventListener('visibilitychange', visibility);
+    window.addEventListener('focus', visibility);
+    window.addEventListener('online', visibility);
     return () => {
       clearInterval(timer);
       clearInterval(clock);
       document.removeEventListener('visibilitychange', visibility);
+      window.removeEventListener('focus', visibility);
+      window.removeEventListener('online', visibility);
       destroyed = true;
       destroyMotion();
     };
@@ -140,7 +153,7 @@
     >
     <span class="header-divider"></span><span class="header-label">{t.statusPage}</span>
     <nav class="header-actions" aria-label={t.preferences}>
-      <ThemeSwitcher {locale} />
+      {#if data.themeEnabled}<ThemeSwitcher {locale} />{/if}
       <PreferenceDropdown
         id="language-selector"
         label={t.language}
@@ -157,7 +170,12 @@
     </nav>
   </header>
 
-  <section class="status-summary shell" aria-labelledby="status-heading" data-status={overall}>
+  <section
+    class="status-summary shell"
+    aria-labelledby="status-heading"
+    data-status={overall}
+    data-generated-at={snapshot.generatedAt}
+  >
     <span class="status-dot summary-dot {overall}" aria-hidden="true"></span>
     <h1 class="max-w-6xl" id="status-heading" aria-live="polite" aria-atomic="true">
       {t.headline[overall]}

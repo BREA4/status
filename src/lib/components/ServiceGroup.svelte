@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { ServiceGroup } from '#lib/catalog.ts';
   import type { Locale } from '#lib/i18n.ts';
-  import { aggregate, currentStatus, type Snapshot } from '#lib/status.ts';
+  import { summarize, currentStatus, type Snapshot } from '#lib/status.ts';
   import Icon from './Icon.svelte';
   import StatusPill from './StatusPill.svelte';
   import History from './History.svelte';
@@ -17,7 +17,7 @@
     ...component,
     observation: snapshot.components.find(({ id }) => component.id === id)!
   }));
-  $: status = aggregate(
+  $: status = summarize(
     components.map(({ observation }) => currentStatus(observation, now, snapshot.incidents))
   );
 </script>

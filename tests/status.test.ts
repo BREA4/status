@@ -7,6 +7,7 @@ import {
   emptySnapshot,
   feedSchema,
   isFresh,
+  summarize,
   type Incident
 } from '../src/lib/status';
 
@@ -27,6 +28,18 @@ describe('language detection', () => {
   });
 });
 describe('availability', () => {
+  test('mixed coverage is incomplete in both group and global summaries', () => {
+    expect(summarize(['operational', 'operational', 'unknown', 'unknown'])).toBe('incomplete');
+    expect(summarize(['operational', 'unknown'])).toBe('incomplete');
+    expect(summarize(['unknown', 'unknown'])).toBe('unknown');
+    expect(summarize([])).toBe('unknown');
+    expect(summarize(['operational', 'operational'])).toBe('operational');
+  });
+  test('known failures take precedence over incomplete coverage', () => {
+    expect(summarize(['unknown', 'degraded'])).toBe('degraded');
+    expect(summarize(['unknown', 'outage'])).toBe('outage');
+    expect(summarize(['unknown', 'maintenance'])).toBe('maintenance');
+  });
   test('an unknown component prevents an all-operational claim', () => {
     expect(aggregate(['operational', 'unknown'])).toBe('unknown');
     expect(aggregate([])).toBe('unknown');
