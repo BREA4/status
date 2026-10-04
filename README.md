@@ -17,6 +17,14 @@ English or Russian is selected from `Accept-Language` before the first render. T
 
 Appearance follows the device's light or dark theme by default, including changes while the page is open. The theme dropdown offers Light, System, and Dark choices. An explicit choice is saved in local storage and applied before the first paint; System clears the override. Switching remains available if storage is blocked. Both dropdowns support arrow keys, Home, End, typing an option's first letter, Escape, and outside-click dismissal.
 
+## Contact support
+
+The support card is hidden by default. The boolean `contact-support` flag in the project's [Vercel Flags dashboard](https://vercel.com/gridness-projects/breach-status/flag/contact-support) controls the entire card for all visitors, in both languages. Set the served variant to `false` to hide it or `true` to show it. Configure Production and Preview separately, with no targeting rules or percentage rollout.
+
+The server evaluates the flag on each page load using `@vercel/flags-core` and Vercel's request-scoped OIDC credentials. Only the resulting boolean reaches the browser. No SDK key or new browser cookie is required. Flag definitions refresh every 60 seconds, so a dashboard change applies to new page loads after propagation without redeploying. Open pages need to reload. If credentials are absent or the provider cannot initialize, the card stays hidden and the status page still renders.
+
+For local development with Vercel credentials, run `vercel env pull .env.local`, then `bun --env-file=.env.local run dev`. Without credentials, support stays hidden. Browser tests expect support to be off by default. Set `STATUS_E2E_SUPPORT_ENABLED=true` when testing a deployment where the flag is on.
+
 ## Analytics
 
 [Vercel Web Analytics](https://vercel.com/gridness-projects/breach-status/analytics) collects page views only when Vercel's `VERCEL_ENV` is `production`. Local development and Preview deployments, including `pre-prod`, do not load the tracker. The integration uses the generic `@vercel/analytics` SDK because its SvelteKit wrapper still depends on `$app/stores`, which SvelteKit 3 removed. The script and collection endpoint use the same origin and fit the existing Content Security Policy.

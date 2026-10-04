@@ -267,19 +267,22 @@
     {/if}
   </section>
 
-  <section class="support-section shell" aria-labelledby="support-heading">
-    <div class="support-card">
-      <div>
-        <span class="support-kicker">{locale === 'en' ? 'BREACH SUPPORT' : 'ПОДДЕРЖКА BREACH'}</span
+  {#if data.supportEnabled}
+    <section class="support-section shell" aria-labelledby="support-heading">
+      <div class="support-card">
+        <div>
+          <span class="support-kicker"
+            >{locale === 'en' ? 'BREACH SUPPORT' : 'ПОДДЕРЖКА BREACH'}</span
+          >
+          <h2 id="support-heading">{t.supportHeading}</h2>
+          <p>{t.supportCopy}</p>
+        </div>
+        <a href="https://brea4.space/app/support" class="button button-green"
+          >{t.support}<Icon name="arrow" size={17} /></a
         >
-        <h2 id="support-heading">{t.supportHeading}</h2>
-        <p>{t.supportCopy}</p>
       </div>
-      <a href="https://brea4.space/app/support" class="button button-green"
-        >{t.support}<Icon name="arrow" size={17} /></a
-      >
-    </div>
-  </section>
+    </section>
+  {/if}
   <footer class="site-footer shell">
     <div class="footer-left">
       <img src="/favicon.svg" alt="" width="23" height="23" /><span>{t.footer}</span>
