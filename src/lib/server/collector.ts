@@ -9,7 +9,7 @@ import incidentData from '../../data/incidents.json';
 import { incidentSchema } from '#lib/status.ts';
 import { componentIds } from '#lib/catalog.ts';
 import { boundedText } from './http';
-import { checkUpdateServer } from './updates';
+import { checkUpdateServer, updateFeedUrl } from './updates';
 import { z } from 'zod';
 
 const readinessSchema = z.object({ status: z.literal('ready') });
@@ -22,7 +22,7 @@ const capabilitiesSchema = z.object({
 const targets = [
   { id: 'website', url: 'https://brea4.space/', marker: 'Breach' },
   { id: 'login', url: 'https://brea4.space/login/password', marker: 'password' },
-  { id: 'update-server', url: 'https://breach-updates.vercel.app/appcast.xml', marker: '' },
+  { id: 'update-server', url: updateFeedUrl, marker: '' },
   { id: 'control-api', url: 'https://brea4.space/api/v1/public/capabilities', marker: '' },
   { id: 'profile-delivery', url: 'https://sync.fatconfig.space/readyz', marker: '' }
 ];

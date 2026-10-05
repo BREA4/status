@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { collectSnapshot } from '../src/lib/server/collector';
-import { appcast, archiveUrl, publicResponse } from './update-fixture';
+import { appcast, archiveUrl, feedUrl, publicResponse, stableArchiveUrl } from './update-fixture';
 import { componentIds } from '../src/lib/catalog';
 
 const mockRequest = (
@@ -188,7 +188,8 @@ test('disabled services are neither probed nor included in observations or incid
     mockRequest((url) => {
       calls.push(url);
       expect(url).not.toContain('brea4.space');
-      expect(url).not.toContain('breach-updates.vercel.app');
+      expect(url).not.toBe(feedUrl);
+      expect(url).not.toBe(archiveUrl);
       return Response.json({
         version: 1,
         generatedAt: now,
@@ -236,7 +237,7 @@ test('update monitoring checks the appcast and archive headers without downloadi
     {},
     mockRequest((url, init) => {
       calls.push({ url, method: init?.method ?? 'GET' });
-      expect(init?.redirect).toBe('error');
+      expect(init?.redirect).toBe(url === feedUrl ? 'error' : 'manual');
       expect(init?.signal).toBeInstanceOf(AbortSignal);
       expect((init?.headers as Record<string, string>).Authorization).toBeUndefined();
       return publicResponse(url, init);
@@ -244,7 +245,7 @@ test('update monitoring checks the appcast and archive headers without downloadi
     ['update-server']
   );
   expect(calls).toEqual([
-    { url: 'https://breach-updates.vercel.app/appcast.xml', method: 'GET' },
+    { url: feedUrl, method: 'GET' },
     { url: archiveUrl, method: 'HEAD' }
   ]);
   expect(result.components[0].status).toBe('operational');
@@ -258,7 +259,7 @@ test('update monitoring reports missing releases as outages and blocked download
     [403, 'unknown'],
     [429, 'unknown']
   ] as const) {
-    for (const failingUrl of ['https://breach-updates.vercel.app/appcast.xml', archiveUrl]) {
+    for (const failingUrl of [feedUrl, archiveUrl]) {
       const result = await collectSnapshot(
         {},
         mockRequest((url, init) =>
@@ -272,13 +273,12 @@ test('update monitoring reports missing releases as outages and blocked download
 });
 
 test('both published release channels must have matching archive sizes', async () => {
-  const stableUrl = archiveUrl.replace('beta', 'stable');
   const result = await collectSnapshot(
     {},
     mockRequest((url) => {
-      if (url.endsWith('appcast.xml')) return new Response(appcast(archiveUrl, stableUrl));
+      if (url.endsWith('appcast.xml')) return new Response(appcast(archiveUrl, stableArchiveUrl));
       return new Response(null, {
-        headers: { 'content-length': url === stableUrl ? '1' : '12345' }
+        headers: { 'content-length': url === stableArchiveUrl ? '1' : '12345' }
       });
     }),
     ['update-server']
@@ -287,11 +287,10 @@ test('both published release channels must have matching archive sizes', async (
 });
 
 test('an archive outage remains visible when the other channel times out', async () => {
-  const stableUrl = archiveUrl.replace('beta', 'stable');
   const result = await collectSnapshot(
     {},
     mockRequest((url) => {
-      if (url.endsWith('appcast.xml')) return new Response(appcast(archiveUrl, stableUrl));
+      if (url.endsWith('appcast.xml')) return new Response(appcast(archiveUrl, stableArchiveUrl));
       if (url === archiveUrl) throw new Error('Timeout');
       return new Response(null, { status: 503 });
     }),
@@ -300,22 +299,190 @@ test('an archive outage remains visible when the other channel times out', async
   expect(result.components[0].status).toBe('outage');
 });
 
+test('retained feeds check only the highest build in each channel, regardless of item order', async () => {
+  const olderBeta = archiveUrl.replaceAll('0.2.1', '0.3').replaceAll('build-6', 'build-4');
+  const olderStable = stableArchiveUrl.replaceAll('build-5', 'build-3');
+  const calls: string[] = [];
+  const result = await collectSnapshot(
+    {},
+    mockRequest((url, init) => {
+      calls.push(url);
+      if (url === feedUrl)
+        return new Response(appcast(olderBeta, olderStable, stableArchiveUrl, archiveUrl));
+      return publicResponse(url, init);
+    }),
+    ['update-server']
+  );
+  expect(calls).toEqual([feedUrl, archiveUrl, stableArchiveUrl]);
+  expect(result.components[0].status).toBe('operational');
+});
+
+test('the publisher feed budget accommodates 100 builds plus a retained stable release', async () => {
+  const betas = Array.from({ length: 100 }, (_, index) =>
+    archiveUrl.replaceAll('build-6', `build-${index + 6}`)
+  );
+  const xml = appcast(...betas, stableArchiveUrl).replace(
+    '</channel>',
+    `<!--${'x'.repeat(600_000)}--></channel>`
+  );
+  const calls: string[] = [];
+  const result = await collectSnapshot(
+    {},
+    mockRequest((url, init) => {
+      calls.push(url);
+      return url === feedUrl ? new Response(xml) : publicResponse(url, init);
+    }),
+    ['update-server']
+  );
+  expect(calls).toEqual([feedUrl, betas[99], stableArchiveUrl]);
+  expect(result.components[0].status).toBe('operational');
+});
+
+test('empty, duplicate, and over-budget release lists remain unknown without archive requests', async () => {
+  const many = Array.from({ length: 102 }, (_, index) =>
+    archiveUrl.replaceAll('build-6', `build-${index + 6}`)
+  );
+  for (const xml of [
+    appcast().replace(/<item>.*<\/item>/, ''),
+    appcast(archiveUrl, archiveUrl),
+    appcast(...many)
+  ]) {
+    const calls: string[] = [];
+    const result = await collectSnapshot(
+      {},
+      mockRequest((url) => {
+        calls.push(url);
+        return new Response(xml);
+      }),
+      ['update-server']
+    );
+    expect(calls).toEqual([feedUrl]);
+    expect(result.components[0].status).toBe('unknown');
+  }
+});
+
+test('GitHub archive redirects use HEAD and share the feed deadline without credentials', async () => {
+  for (const host of ['release-assets.githubusercontent.com', 'objects.githubusercontent.com']) {
+    const assetUrl = `https://${host}/github-production-release-asset/example?signature=public`;
+    const calls: string[] = [];
+    let signal: AbortSignal | null | undefined;
+    const result = await collectSnapshot(
+      {},
+      mockRequest((url, init) => {
+        calls.push(url);
+        if (url === feedUrl) {
+          signal = init?.signal;
+          return publicResponse(url, init);
+        }
+        expect(init?.method).toBe('HEAD');
+        expect(init?.redirect).toBe('manual');
+        expect(init?.signal).toBe(signal);
+        expect((init?.headers as Record<string, string>).Authorization).toBeUndefined();
+        if (url === archiveUrl)
+          return new Response(null, { status: 302, headers: { location: assetUrl } });
+        return publicResponse(url, init);
+      }),
+      ['update-server']
+    );
+    expect(calls).toEqual([feedUrl, archiveUrl, assetUrl]);
+    expect(result.components[0].status).toBe('operational');
+  }
+});
+
+test('unsafe or missing archive redirects are rejected before the next request', async () => {
+  for (const location of [
+    null,
+    'http://release-assets.githubusercontent.com/asset',
+    'https://attacker.example/asset',
+    'https://release-assets.githubusercontent.com.attacker.example/asset',
+    'https://release-assets.githubusercontent.com:444/asset',
+    'https://user:secret@release-assets.githubusercontent.com/asset',
+    'https://release-assets.githubusercontent.com/asset#fragment',
+    'https://github.com/attacker/repo/releases/download/1/asset.zip',
+    '/login',
+    'https://release-assets.githubusercontent.com/asset?' + 'x'.repeat(8192)
+  ]) {
+    const calls: string[] = [];
+    const result = await collectSnapshot(
+      {},
+      mockRequest((url, init) => {
+        calls.push(url);
+        return url === feedUrl
+          ? publicResponse(url, init)
+          : new Response(null, { status: 302, headers: location ? { location } : {} });
+      }),
+      ['update-server']
+    );
+    expect(calls).toEqual([feedUrl, archiveUrl]);
+    expect(result.components[0].status).toBe('unknown');
+  }
+});
+
+test('archive redirect loops are bounded', async () => {
+  const assetUrl = 'https://release-assets.githubusercontent.com/asset';
+  const calls: string[] = [];
+  const result = await collectSnapshot(
+    {},
+    mockRequest((url, init) => {
+      calls.push(url);
+      return url === feedUrl
+        ? publicResponse(url, init)
+        : new Response(null, { status: 302, headers: { location: assetUrl } });
+    }),
+    ['update-server']
+  );
+  expect(calls).toEqual([feedUrl, archiveUrl, assetUrl, assetUrl]);
+  expect(result.components[0].status).toBe('unknown');
+});
+
+test('archive failures after a GitHub redirect retain their outage or unknown status', async () => {
+  const assetUrl = 'https://release-assets.githubusercontent.com/asset';
+  for (const [code, expected] of [
+    [404, 'outage'],
+    [503, 'outage'],
+    [403, 'unknown'],
+    [429, 'unknown']
+  ] as const) {
+    const result = await collectSnapshot(
+      {},
+      mockRequest((url, init) => {
+        if (url === feedUrl) return publicResponse(url, init);
+        if (url === archiveUrl)
+          return new Response(null, { status: 302, headers: { location: assetUrl } });
+        return new Response(null, { status: code });
+      }),
+      ['update-server']
+    );
+    expect(result.components[0].status).toBe(expected);
+  }
+});
+
 test('malformed or unsafe appcasts never cause archive requests', async () => {
   const invalid = [
     '<html>Breach updates</html>',
     appcast().replace('</rss>', ''),
     '<!DOCTYPE rss [<!ENTITY file SYSTEM "file:///etc/passwd">]>' + appcast(),
-    appcast('https://attacker.example/releases/Breach-0.1-beta-3-arm64.zip'),
+    appcast(archiveUrl.replace('github.com', 'attacker.example')),
     appcast(archiveUrl.replace('https:', 'http:')),
     appcast(archiveUrl + '?secret=token'),
-    appcast('https://user:secret@breach-updates.vercel.app/releases/Breach-0.1-beta-3-arm64.zip'),
+    appcast(archiveUrl.replace('https://', 'https://user:secret@')),
+    appcast(archiveUrl.replace('/BREA4/', '/attacker/')),
+    appcast(archiveUrl.replace('Breach-0.2.1-build-6', 'Breach-0.2.1-build-7')),
+    appcast('https://breach-updates.vercel.app/releases/Breach-0.1-beta-3-arm64.zip'),
+    appcast(archiveUrl + '#archive'),
+    appcast().replace('<sparkle:version>6', '<sparkle:version>7'),
+    appcast().replace('<sparkle:channel>beta</sparkle:channel>', ''),
+    appcast(stableArchiveUrl).replace(
+      '<enclosure',
+      '<sparkle:channel>beta</sparkle:channel><enclosure'
+    ),
     appcast().replace('sparkle:edSignature', 'unsigned'),
     appcast().replace('length="12345"', 'length="0"'),
     appcast().replace(
       'http://www.andymatuschak.org/xml-namespaces/sparkle',
       'https://attacker.example'
     ),
-    appcast() + 'x'.repeat(512_000)
+    appcast() + 'x'.repeat(1_000_000)
   ];
   for (const xml of invalid) {
     let calls = 0;

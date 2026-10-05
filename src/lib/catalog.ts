@@ -93,7 +93,10 @@ export const groups: ServiceGroup[] = [
       {
         id: 'update-server',
         name: text('Update server', 'Сервер обновлений'),
-        description: text('macOS update feed and downloads', 'Лента обновлений macOS и загрузки'),
+        description: text(
+          'macOS updates via GitHub Pages and Releases',
+          'Обновления macOS через GitHub Pages и Releases'
+        ),
         probe: 'updates'
       }
     ]

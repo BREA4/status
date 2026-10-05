@@ -1,14 +1,19 @@
-export const archiveUrl = 'https://breach-updates.vercel.app/releases/Breach-0.1-beta-3-arm64.zip';
+export const feedUrl = 'https://brea4.github.io/apple-app-update-server/appcast.xml';
+export const archiveUrl =
+  'https://github.com/BREA4/apple-app-update-server/releases/download/0.2.1-beta-build-6/Breach-0.2.1-build-6-arm64.zip';
+export const stableArchiveUrl = archiveUrl
+  .replace('beta-build-6', 'release-build-5')
+  .replace('Breach-0.2.1-build-6', 'Breach-0.2.1-build-5');
 
 export function appcast(...urls: string[]) {
   return `<?xml version="1.0"?><rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel><title>Breach updates</title>${(urls.length
     ? urls
     : [archiveUrl]
   )
-    .map(
-      (url) =>
-        `<item><sparkle:version>3</sparkle:version><enclosure url="${url}" length="12345" sparkle:edSignature="${'A'.repeat(86)}==" /></item>`
-    )
+    .map((url) => {
+      const identity = /\/(\d+\.\d+(?:\.\d+)?)-(beta|release)-build-(\d+)\//.exec(url);
+      return `<item><sparkle:version>${identity?.[3] ?? '6'}</sparkle:version>${identity?.[2] === 'release' ? '' : '<sparkle:channel>beta</sparkle:channel>'}<enclosure url="${url}" length="12345" sparkle:edSignature="${'A'.repeat(86)}==" /></item>`;
+    })
     .join('')}</channel></rss>`;
 }
 
