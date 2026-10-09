@@ -103,6 +103,53 @@ test('shows 100% for one operational day while keeping unrecorded days empty', a
   );
 });
 
+test('waits for a new status poll when the startup poll is still running', async ({ page }) => {
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let started!: () => void;
+  const initialPoll = new Promise<void>((resolve) => {
+    started = resolve;
+  });
+  let polls = 0;
+  const snapshot = emptySnapshot();
+  snapshot.components.find(({ id }) => id === 'update-server')!.history = [
+    { date: snapshot.generatedAt.slice(0, 10), status: 'operational', uptime: null }
+  ];
+  await page.route('**/api/status', async (route) => {
+    polls++;
+    if (polls === 1) {
+      started();
+      await pending;
+      await route.fulfill({ json: emptySnapshot() });
+    } else {
+      await route.fulfill({ json: snapshot });
+    }
+  });
+  await page.goto('/');
+  await initialPoll;
+  await page.evaluate(() => {
+    document.addEventListener(
+      'visibilitychange',
+      () => (document.documentElement.dataset.pollTriggered = 'true'),
+      { once: true }
+    );
+  });
+  const nextPoll = pollStatus(page);
+  try {
+    await expect(page.locator('html')).toHaveAttribute('data-poll-triggered', 'true');
+  } finally {
+    release();
+  }
+  await nextPoll;
+  expect(polls).toBe(2);
+  await chooseLanguage(page, 'en');
+  await page.getByRole('button', { name: /Breach app/ }).click();
+  await page.getByRole('button', { name: /Update server/ }).click();
+  await expect(page.locator('.history-bar.operational')).toHaveCount(1);
+});
+
 test('shows compact daily uptime and averages measured and recorded days', async ({ page }) => {
   await page.goto('/');
   await chooseLanguage(page, 'en');
