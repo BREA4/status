@@ -70,6 +70,38 @@ test('stores the worst observation of the UTC day and avoids writes for unchange
   expect(store.writes).toBe(2);
 });
 
+test('a day with a known check stays filled despite inconclusive checks', async () => {
+  for (const status of [
+    'operational',
+    'degraded',
+    'partial_outage',
+    'outage',
+    'maintenance'
+  ] as const) {
+    for (const statuses of [
+      ['unknown', status],
+      [status, 'unknown']
+    ] as const) {
+      const store = new MemoryStore();
+      await recordHistory(observation('website', statuses[0]), store);
+      const result = await recordHistory(observation('website', statuses[1], now + 60_000), store);
+      expect(result.components[0].history).toEqual([{ date: '2026-10-04', status, uptime: null }]);
+      expect(result.components[0].status).toBe(statuses[1]);
+      expect(store.writes).toBe(statuses[0] === 'unknown' ? 2 : 1);
+    }
+  }
+});
+
+test('a day with only inconclusive checks remains unknown', async () => {
+  const store = new MemoryStore();
+  await recordHistory(observation('website', 'unknown'), store);
+  const result = await recordHistory(observation('website', 'unknown', now + 60_000), store);
+  expect(result.components[0].history).toEqual([
+    { date: '2026-10-04', status: 'unknown', uptime: null }
+  ]);
+  expect(store.writes).toBe(1);
+});
+
 test('simultaneous first writes preserve observations from both function instances', async () => {
   const store = new MemoryStore();
   await Promise.all([

@@ -58,7 +58,10 @@ function mergeHistory(document: HistoryDocument, snapshot: Snapshot): HistoryDoc
       previous
         ? {
             date: day.date,
-            status: aggregate([previous.status, day.status]),
+            // An inconclusive check cannot erase a day's known observations.
+            status: aggregate(
+              [previous.status, day.status].filter((status) => status !== 'unknown')
+            ),
             uptime: day.uptime ?? previous.uptime
           }
         : { ...day }
