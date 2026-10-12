@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "components": [
+    {
+      "id": "website",
+      "history": [
+        {
+          "date": "2026-10-04",
+          "status": "unknown",
+          "uptime": null
+        },
+        {
+          "date": "2026-10-05",
+          "status": "operational",
+          "uptime": null
+        },
+        {
+          "date": "2026-10-06",
+          "status": "operational",
+          "uptime": null
+        },
+        {
+          "date": "2026-10-12",
+          "status": "operational",
+          "uptime": null
+        }
+      ]
+    },
+    {
+      "id": "login",
+      "history": [
+        {
+          "date": "2026-10-04",
+          "status": "operational",
+          "uptime": null
+        },
+        {
+          "date": "2026-10-05",
+          "status": "operational",
+          "uptime": null
+        },
+        {
+          "date": "2026-10-06",
+          "status": "operational",
+          "uptime": null
+        },
+        {
+          "date": "2026-10-12",
+          "status": "operational",
+          "uptime": null
+        }
+      ]
+    },
+    {
+      "id": "update-server",
+      "history": [
+        {
+          "date": "2026-10-04",
+          "status": "operational",
+          "uptime": null
+        },
+        {
+          "date": "2026-10-05",
+          "status": "unknown",
+          "uptime": null
+        },
+        {
+          "date": "2026-10-06",
+          "status": "operational",
+          "uptime": null
+        },
+        {
+          "date": "2026-10-12",
+          "status": "unknown",
+          "uptime": null
+        }
+      ]
+    },
+    {
+      "id": "control-api",
+      "history": [
+        {
+          "date": "2026-10-04",
+          "status": "operational",
+          "uptime": null
+        },
+        {
+          "date": "2026-10-05",
+          "status": "operational",
+          "uptime": null
+        },
+        {
+          "date": "2026-10-06",
+          "status": "operational",
+          "uptime": null
+        },
+        {
+          "date": "2026-10-12",
+          "status": "operational",
+          "uptime": null
+        }
+      ]
+    },
+    {
+      "id": "profile-delivery",
+      "history": [
+        {
+          "date": "2026-10-04",
+          "status": "operational",
+          "uptime": null
+        },
+        {
+          "date": "2026-10-05",
+          "status": "operational",
+          "uptime": null
+        },
+        {
+          "date": "2026-10-06",
+          "status": "operational",
+          "uptime": null
+        },
+        {
+          "date": "2026-10-12",
+          "status": "operational",
+          "uptime": null
+        }
+      ]
+    }
+  ]
+}
