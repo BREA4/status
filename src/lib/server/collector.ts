@@ -2,6 +2,7 @@ import {
   emptySnapshot,
   feedSchema,
   isFresh,
+  FEED_FRESHNESS_MS,
   type ComponentStatus,
   type Snapshot
 } from '#lib/status.ts';
@@ -139,7 +140,7 @@ export async function collectSnapshot(
       }
       // ASVS 2.2.1, 2.2.2: validate on the server and strip fields outside the public contract.
       const feed = feedSchema.parse(JSON.parse(await boundedText(response)));
-      const feedFresh = isFresh(feed.generatedAt);
+      const feedFresh = isFresh(feed.generatedAt, Date.now(), FEED_FRESHNESS_MS);
       snapshot.feed = feedFresh ? 'connected' : 'unavailable';
       for (const component of feed.components) {
         const current = snapshot.components.find((item) => item.id === component.id);
@@ -148,7 +149,7 @@ export async function collectSnapshot(
           (day) => day.date <= new Date().toISOString().slice(0, 10)
         );
         // An old feed never overwrites a current website probe with a stale status.
-        if (feedFresh && isFresh(component.checkedAt))
+        if (feedFresh && isFresh(component.checkedAt, Date.now(), FEED_FRESHNESS_MS))
           Object.assign(current, {
             status: component.status,
             checkedAt: component.checkedAt,

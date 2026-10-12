@@ -1,20 +1,10 @@
 import { expect, test } from '@playwright/test';
 
-test('only production starts analytics, using the existing same-origin CSP', async ({ page }) => {
-  await page.route('**/_vercel/insights/script.js', (route) =>
-    route.fulfill({
-      contentType: 'application/javascript',
-      body: 'window.statusAnalyticsLoaded = true;'
-    })
-  );
-  await page.goto('/?token=private#services');
+test('the static site makes no Vercel or analytics requests', async ({ page }) => {
+  const requests: string[] = [];
+  page.on('request', (request) => requests.push(request.url()));
+  await page.goto('./?token=private#services');
   await expect(page.locator('#language-selector')).toBeEnabled();
-  const tracker = page.locator('script[src="/_vercel/insights/script.js"]');
-  if (process.env.VERCEL_ENV === 'production') {
-    await expect(tracker).toHaveCount(1);
-    await expect.poll(() => page.evaluate('window.statusAnalyticsLoaded')).toBe(true);
-  } else {
-    await expect(tracker).toHaveCount(0);
-    expect(await page.evaluate('window.statusAnalyticsLoaded')).toBeUndefined();
-  }
+  await expect(page.locator('script[src*="_vercel"]')).toHaveCount(0);
+  expect(requests.some((url) => /vercel|insights/.test(url))).toBe(false);
 });

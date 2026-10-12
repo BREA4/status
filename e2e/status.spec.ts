@@ -13,7 +13,7 @@ test('waits for hydration before accepting a language click', async ({ page }) =
     await ready;
     await route.continue();
   });
-  await page.goto('/', { waitUntil: 'commit' });
+  await page.goto('./', { waitUntil: 'commit' });
   try {
     await expect(page.locator('#language-selector')).toBeDisabled();
   } finally {
@@ -28,7 +28,7 @@ test('detects language, persists a switch, and keeps layouts within the viewport
 }, testInfo) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  const response = await page.goto('/');
+  const response = await page.goto('./');
   expect(response?.status(), 'The server must render a successful page').toBe(200);
   const russian = testInfo.project.name === 'mobile-ru';
   await expect(page.locator('html')).toHaveAttribute('lang', russian ? 'ru' : 'en');
@@ -59,10 +59,10 @@ test('detects language, persists a switch, and keeps layouts within the viewport
 });
 
 test('filters locations, expands protocols and exposes missing history', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await chooseLanguage(page, 'en');
   // Keep this UI test independent of the linked project's changing service flags.
-  await page.route('**/api/status', (route) => route.fulfill({ json: emptySnapshot() }));
+  await page.route('**/api/status.json', (route) => route.fulfill({ json: emptySnapshot() }));
   await pollStatus(page);
   await page.getByRole('button', { name: 'Network', exact: true }).click();
   await expect(page.locator('.service-group')).toHaveCount(3);
@@ -75,14 +75,14 @@ test('filters locations, expands protocols and exposes missing history', async (
 });
 
 test('shows 100% for one operational day while keeping unrecorded days empty', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await chooseLanguage(page, 'en');
   const snapshot = emptySnapshot();
   const component = snapshot.components.find(({ id }) => id === 'update-server')!;
   component.history = [
     { date: snapshot.generatedAt.slice(0, 10), status: 'operational', uptime: null }
   ];
-  await page.route('**/api/status', (route) => route.fulfill({ json: snapshot }));
+  await page.route('**/api/status.json', (route) => route.fulfill({ json: snapshot }));
   await pollStatus(page);
   await page.getByRole('button', { name: /Breach app/ }).click();
   await page.getByRole('button', { name: /Update server/ }).click();
@@ -103,6 +103,32 @@ test('shows 100% for one operational day while keeping unrecorded days empty', a
   );
 });
 
+test('recorded problem and inconclusive days have filled history bars', async ({ page }) => {
+  const snapshot = emptySnapshot();
+  const midnight = Date.parse(`${snapshot.generatedAt.slice(0, 10)}T00:00:00Z`);
+  const component = snapshot.components.find(({ id }) => id === 'update-server')!;
+  component.history = ['outage', 'partial_outage', 'degraded', 'maintenance', 'unknown'].map(
+    (status, index) => ({
+      date: new Date(midnight - (4 - index) * 86_400_000).toISOString().slice(0, 10),
+      status: status as typeof component.status,
+      uptime: null
+    })
+  );
+  await page.route('**/api/status.json', (route) => route.fulfill({ json: snapshot }));
+  await page.goto('./');
+  await chooseLanguage(page, 'en');
+  await pollStatus(page);
+  await page.getByRole('button', { name: /Breach app/ }).click();
+  await page.getByRole('button', { name: /Update server/ }).click();
+  for (const day of component.history) {
+    const bar = page.locator(`.history-bar[data-date="${day.date}"]`);
+    await expect(bar).toHaveAttribute('data-recorded', 'true');
+    await expect(bar).toHaveCSS('background-image', 'none');
+    expect((await bar.boundingBox())!.height).toBeGreaterThan(0);
+  }
+  await expect(page.locator('.history-bar[data-recorded="false"]')).toHaveCount(85);
+});
+
 test('waits for a new status poll when the startup poll is still running', async ({ page }) => {
   let release!: () => void;
   const pending = new Promise<void>((resolve) => {
@@ -117,7 +143,7 @@ test('waits for a new status poll when the startup poll is still running', async
   snapshot.components.find(({ id }) => id === 'update-server')!.history = [
     { date: snapshot.generatedAt.slice(0, 10), status: 'operational', uptime: null }
   ];
-  await page.route('**/api/status', async (route) => {
+  await page.route('**/api/status.json', async (route) => {
     polls++;
     if (polls === 1) {
       started();
@@ -127,7 +153,7 @@ test('waits for a new status poll when the startup poll is still running', async
       await route.fulfill({ json: snapshot });
     }
   });
-  await page.goto('/');
+  await page.goto('./');
   await initialPoll;
   await page.evaluate(() => {
     document.addEventListener(
@@ -151,7 +177,7 @@ test('waits for a new status poll when the startup poll is still running', async
 });
 
 test('shows compact daily uptime and averages measured and recorded days', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await chooseLanguage(page, 'en');
   const snapshot = emptySnapshot();
   const midnight = Date.parse(`${snapshot.generatedAt.slice(0, 10)}T00:00:00Z`);
@@ -161,7 +187,7 @@ test('shows compact daily uptime and averages measured and recorded days', async
     status: 'operational',
     uptime
   }));
-  await page.route('**/api/status', (route) => route.fulfill({ json: snapshot }));
+  await page.route('**/api/status.json', (route) => route.fulfill({ json: snapshot }));
   await pollStatus(page);
   await page.getByRole('button', { name: /Breach app/ }).click();
   await page.getByRole('button', { name: /Update server/ }).click();
@@ -187,7 +213,7 @@ test('shows compact daily uptime and averages measured and recorded days', async
 test('recorded downtime reduces uptime without counting missing or unknown days', async ({
   page
 }) => {
-  await page.goto('/');
+  await page.goto('./');
   await chooseLanguage(page, 'en');
   const snapshot = emptySnapshot();
   const midnight = Date.parse(`${snapshot.generatedAt.slice(0, 10)}T00:00:00Z`);
@@ -197,7 +223,7 @@ test('recorded downtime reduces uptime without counting missing or unknown days'
     status: status as typeof component.status,
     uptime: null
   }));
-  await page.route('**/api/status', (route) => route.fulfill({ json: snapshot }));
+  await page.route('**/api/status.json', (route) => route.fulfill({ json: snapshot }));
   await pollStatus(page);
   await page.getByRole('button', { name: /Breach app/ }).click();
   await page.getByRole('button', { name: /Update server/ }).click();
@@ -211,58 +237,59 @@ test('recorded downtime reduces uptime without counting missing or unknown days'
   await expect(page.locator('.history-heading')).toHaveText('90-day historyNo data');
 });
 
-test('history cron rejects public requests before collecting checks', async ({ request }) => {
+test('the retired history cron endpoint is unavailable', async ({ request }) => {
   const credentials: Record<string, string>[] = [{}, { Authorization: 'Bearer invalid' }];
   for (const headers of credentials) {
-    const response = await request.get('/api/cron/history', { headers });
-    expect(response.status()).toBe(401);
-    expect(await response.json()).toEqual({ error: 'Unauthorized' });
+    const response = await request.get('./api/cron/history', { headers });
+    expect(response.status()).toBe(404);
   }
 });
 
 test('retries failed background updates without exposing refresh controls', async ({ page }) => {
   await page.clock.install();
-  await page.goto('/');
+  await page.goto('./');
   await chooseLanguage(page, 'en');
   const snapshot = emptySnapshot(await page.evaluate(() => Date.now()));
   snapshot.components.forEach((component) => {
     component.status = 'operational';
     component.checkedAt = snapshot.generatedAt;
   });
-  await page.route('**/api/status', (route) => route.fulfill({ json: snapshot }));
+  await page.route('**/api/status.json', (route) => route.fulfill({ json: snapshot }));
   await pollStatus(page);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('All systems operational');
-  await page.route('**/api/status', (route) => route.fulfill({ status: 503, body: 'Unavailable' }));
+  await page.route('**/api/status.json', (route) =>
+    route.fulfill({ status: 503, body: 'Unavailable' })
+  );
   await pollStatus(page);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('All systems operational');
   await expect(
     page.locator('.notice, .refresh-announcement, .refresh-button, .update-strip')
   ).toHaveCount(0);
-  await page.clock.fastForward(6 * 60_000);
+  await page.clock.fastForward(16 * 60_000);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Status unavailable');
   snapshot.generatedAt = new Date(await page.evaluate(() => Date.now())).toISOString();
   snapshot.components.forEach((component) => (component.checkedAt = snapshot.generatedAt));
-  await page.route('**/api/status', (route) => route.fulfill({ json: snapshot }));
+  await page.route('**/api/status.json', (route) => route.fulfill({ json: snapshot }));
   await page.clock.fastForward(61_000);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('All systems operational');
 });
 
 test('stale data cannot stay green, even after a successful fetch', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await chooseLanguage(page, 'en');
-  const snapshot = emptySnapshot(Date.now() - 600_000);
+  const snapshot = emptySnapshot(Date.now() - 1_200_000);
   snapshot.components.forEach((component) => {
     component.status = 'operational';
     component.checkedAt = snapshot.generatedAt;
   });
-  await page.route('**/api/status', (route) => route.fulfill({ json: snapshot }));
+  await page.route('**/api/status.json', (route) => route.fulfill({ json: snapshot }));
   await pollStatus(page);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Status unavailable');
   await expect(page.locator('.summary-dot')).toHaveClass(/unknown/);
 });
 
 test('incident updates are escaped, localized, and paginated', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await chooseLanguage(page, 'en');
   const snapshot = emptySnapshot();
   snapshot.incidents = Array.from({ length: 4 }, (_, index) => ({
@@ -280,7 +307,7 @@ test('incident updates are escaped, localized, and paginated', async ({ page }) 
       }
     ]
   }));
-  await page.route('**/api/status', (route) => route.fulfill({ json: snapshot }));
+  await page.route('**/api/status.json', (route) => route.fulfill({ json: snapshot }));
   await pollStatus(page);
   await expect(page.locator('.incident')).toHaveCount(3);
   await expect(page.locator('.incident-update').first()).toContainText('<script>alert(1)</script>');

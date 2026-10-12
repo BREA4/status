@@ -15,7 +15,7 @@ test('follows device changes, remembers overrides, and returns to automatic mode
 }, testInfo) => {
   const t = messages[testInfo.project.name === 'mobile-ru' ? 'ru' : 'en'];
   await page.emulateMedia({ colorScheme: 'dark' });
-  await page.goto('/');
+  await page.goto('./');
   await expectTheme(page, 'dark');
   await expect(page.locator('#theme-selector')).toHaveAccessibleName(
     `${t.appearance}: ${t.theme.system}`
@@ -52,7 +52,7 @@ test('applies a saved override before hydration and supports keyboard switching'
     await ready;
     await route.continue();
   });
-  await page.goto('/', { waitUntil: 'commit' });
+  await page.goto('./', { waitUntil: 'commit' });
   try {
     await expectTheme(page, 'dark');
     await expect(page.locator('#theme-selector')).toBeDisabled();
@@ -86,7 +86,7 @@ test('switches themes even when browser storage is blocked', async ({ page }, te
       });
     }
   });
-  await page.goto('/');
+  await page.goto('./');
   await expectTheme(page, 'dark');
   await chooseTheme(page, t.theme.light);
   await expectTheme(page, 'light');
@@ -98,10 +98,10 @@ test('switches themes even when browser storage is blocked', async ({ page }, te
 test('shares an appearance choice across open tabs', async ({ page, context }, testInfo) => {
   const t = messages[testInfo.project.name === 'mobile-ru' ? 'ru' : 'en'];
   await page.emulateMedia({ colorScheme: 'light' });
-  await page.goto('/');
+  await page.goto('./');
   const other = await context.newPage();
   await other.emulateMedia({ colorScheme: 'light' });
-  await other.goto('/');
+  await other.goto('./');
   await chooseTheme(page, t.theme.dark);
   await expectTheme(other, 'dark');
   await chooseTheme(other, t.theme.system);
@@ -114,7 +114,7 @@ test('keeps dark service details and incidents legible without overflowing', asy
 }, testInfo) => {
   const mobile = testInfo.project.name === 'mobile-ru';
   await page.emulateMedia({ colorScheme: 'dark' });
-  await page.goto('/');
+  await page.goto('./');
   const snapshot = emptySnapshot();
   const states: Status[] = ['operational', 'degraded', 'outage', 'maintenance', 'unknown'];
   snapshot.components.forEach((component, index) => {
@@ -141,7 +141,7 @@ test('keeps dark service details and incidents legible without overflowing', asy
       ]
     }
   ];
-  await page.route('**/api/status', (route) => route.fulfill({ json: snapshot }));
+  await page.route('**/api/status.json', (route) => route.fulfill({ json: snapshot }));
   await expect(page.locator('#language-selector')).toBeEnabled();
   await pollStatus(page);
   await page.locator('.component-toggle').first().click();
@@ -198,7 +198,7 @@ test('keeps dark service details and incidents legible without overflowing', asy
 test.describe('without JavaScript', () => {
   test.use({ javaScriptEnabled: false, colorScheme: 'dark' });
   test('renders the device theme on the server-rendered page', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('./');
     await expectTheme(page, 'dark');
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   });

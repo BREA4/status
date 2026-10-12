@@ -2,9 +2,11 @@
 
 ## Live observations
 
-The page fetches `/api/status` immediately after hydration and every 60 seconds while visible. It also fetches when a background tab becomes visible, the window regains focus, or connectivity returns. The server shares in-flight work and caches observations for 60 seconds per function instance. The API response is private and uncached. Probes have an eight-second timeout, fixed targets, no redirects, and a 512 KB response limit, except for the update feed and GitHub asset redirects described below. Production contains no mock status API or fabricated successful observations.
+The browser fetches `/status/api/status.json` immediately after hydration, every 60 seconds while visible, and when focus or connectivity returns. These requests read published static data; they do not run probes. The `Monitor and publish Pages` GitHub Actions workflow runs probes every five minutes on its `2-59/5 * * * *` schedule, including without visitors. Probes have an eight-second timeout, fixed targets, no redirects, and a 512 KB response limit, except for the update feed and GitHub asset redirects described below. Production contains no mock provider or fabricated successful observations.
 
-Public probes cover `website` and `login`. A successful response must contain expected page content. HTTP errors indicate an outage; rate limits, access challenges, incorrect content, network errors, and inconclusive responses produce `unknown`. A response slower than three seconds is `degraded`. Every result describes the Vercel monitoring location, not every user's network.
+The static site preserves observations for up to 15 minutes to allow for scheduling and publication delays, then marks current statuses unknown. Historical bars never expire with the current observation. GitHub does not guarantee exact scheduling. See [GitHub's schedule documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
+
+Public probes cover `website` and `login`. A successful response must contain expected page content. HTTP errors indicate an outage; rate limits, access challenges, incorrect content, network errors, and inconclusive responses produce `unknown`. A response slower than three seconds is `degraded`. Every result describes the GitHub Actions runner location, not every user's network.
 
 The `update-server` check uses the same Sparkle endpoint as BREA4/apple-app: `https://brea4.github.io/apple-app-update-server/appcast.xml`. [The public publisher](https://github.com/BREA4/apple-app-update-server/blob/main/scripts/pipeline.py) retains up to 100 recent builds plus the newest stable build if it falls outside that window. The monitor accepts up to 101 entries and a 1 MB feed, covering the publisher's 900 KB XML budget and Sparkle signing comments. It requires signed enclosure metadata and matching build/channel identities, then sends HEAD requests only to the highest build in each published channel. Beta items use `sparkle:channel=beta`; stable items omit the channel. A beta-only feed is valid. An empty feed remains unknown and makes no archive requests.
 
@@ -19,7 +21,7 @@ Account and device operations need authenticated measurements. VPN protocol chec
 
 ## Optional observation feed
 
-Set `STATUS_FEED_URL` to an operator-controlled HTTPS JSON URL. Set `STATUS_FEED_TOKEN` only if that URL requires a bearer token. These values are server-only. The URL must not redirect, contain embedded credentials, or point to untrusted content. The server validates the feed and discards fields outside this contract.
+Set repository variable or secret `STATUS_FEED_URL` to an operator-controlled HTTPS JSON URL. Set repository secret `STATUS_FEED_TOKEN` only if that URL requires a bearer token. These values are used only by the collection step; the build and browser never receive the token. The URL must not redirect, contain embedded credentials, or point to untrusted content. The collector validates the feed and discards fields outside this contract.
 
 ```json
 {
@@ -37,7 +39,7 @@ Set `STATUS_FEED_URL` to an operator-controlled HTTPS JSON URL. Set `STATUS_FEED
 }
 ```
 
-Example timestamps are illustrative. Use actual observation times. Both `generatedAt` and `checkedAt` must be within five minutes of the current time; up to one minute of future clock skew is accepted. Missing and expired observations stay unknown. Feed failures leave public website probes running. The browser also expires statuses if polling stops.
+Example timestamps are illustrative. Use actual observation times. Both `generatedAt` and `checkedAt` must be within five minutes of the current time; up to one minute of future clock skew is accepted. Missing and expired observations stay unknown. Feed failures leave public website probes running. The browser expires published statuses after 15 minutes even if polling stops.
 
 Allowed observation statuses: `operational`, `degraded`, `partial_outage`, `outage`, `maintenance`, `unknown`. Global and group summaries use the same policy. Mixed operational and unknown services show "Monitoring incomplete"; all-unknown services show unavailable data. A known failure or active incident takes precedence. An all-operational headline requires every enabled component to have a fresh healthy observation. Individual unknown components remain "No data". `incomplete` is a presentation state and is never stored as a measured component status. Scheduled incidents do not affect availability until their status changes to `maintenance`.
 
@@ -51,32 +53,23 @@ Allowed observation statuses: `operational`, `degraded`, `partial_outage`, `outa
 
 The catalog is in `src/lib/catalog.ts`. Locations and protocols came from the redacted `vpn-backend/docs/operations/current-production-state.md` referenced by vpn-web, dated August 24, 2026. They are service names, not evidence of current health. vpn-infra's staging inventory was empty when inspected.
 
-Every ID in the table has a Vercel boolean flag named `service-<id>`, such as `service-profile-delivery` or `service-riga-tuic`. Flags default to on. Turning one off stops its public probe, discards its feed observations, and removes it and its history from the page, API, headline, and affected-service lists. Saved history remains in private storage within the 90-day retention window and becomes visible if the service is enabled again. Incidents scoped only to disabled services disappear; mixed incidents retain enabled component references. Empty component lists denote global incidents, which remain while any services are enabled. If every service is disabled, no upstream checks run and the snapshot contains no components or incidents. The operator's feed may continue publishing the complete catalog.
+Every ID in the table has a boolean setting in `src/data/features.json` named `service-<id>`, such as `service-profile-delivery` or `service-riga-tuic`. Flags default to on. Turning one off stops its public probe, discards its feed observations, and removes it and its history from the page, API, headline, and affected-service lists. Saved history remains on the `monitoring-data` branch within the 90-day retention window and becomes visible if the service is enabled again. Incidents scoped only to disabled services disappear; mixed incidents retain enabled component references. Empty component lists denote global incidents, which remain while any services are enabled. If every service is disabled, no upstream checks run and the snapshot contains no components or incidents. The operator's feed may continue publishing the complete catalog.
 
 ## History
 
-Production saves daily summaries to `status-history/v1/production.json` in a private Vercel Blob store. A fresh HTTP or feed observation records the component's worst known status for its UTC date, including active incident impact. Inconclusive checks do not replace known observations from the same day; days with only inconclusive checks remain unknown. Services without observations get no invented history. The last 90 UTC dates are retained; future feed dates are discarded. Saved feed history survives subsequent feed failures. Disabling a service hides its saved history without deleting it.
+Production saves daily summaries in `history.json` on the `monitoring-data` branch. A fresh HTTP or feed observation records the component's worst known status for its UTC date, including active incident impact. Recovery and inconclusive checks cannot erase a known problem. Days with only inconclusive checks have a solid gray bar; days without any observations have a striped gap. Services without observations get no invented history. The last 90 UTC dates are retained; future feed dates are discarded. Saved feed history survives feed failures. Disabling a service hides its saved history without deleting it.
 
 `uptime` is a monitor's measured percentage for that day, or `null` for ordinary status checks. The history heading averages the recorded days within the 90-day window, even before a full 90 days are available. A supplied measured percentage takes precedence. Otherwise, operational and degraded days count as available at 100%; partial outages, outages, and maintenance days count as unavailable at 0%. Missing days and unknown days without a measured percentage are excluded from both the numerator and denominator. One recorded operational day therefore shows 100%, while two available days and one unavailable day show 66.67%. This fallback reports availability by recorded day, using the day's worst recorded status, rather than continuous time-based uptime. The API retains `uptime: null` for those status-only records.
 
 Each day's tooltip shows its measured percentage or availability calculated from its recorded status, formatted with up to two decimal places and no trailing zeros. Missing days display as striped gaps. If no usable recorded days exist, the heading shows "No data" or "No recorded history". Recording begins when storage is configured; earlier unmeasured days cannot be reconstructed.
 
-Only changed summaries are written. Blob reads may use a five-minute cache; ETag conditional writes and origin reads on conflicts prevent cached or concurrent requests from overwriting another check. Storage requests share a four-second deadline and validate a bounded JSON document. Storage failures preserve live status and report `historyRecording: "unavailable"` in the status API. A missing production store reports `"unconfigured"`; a successful recorder reports `"recorded"`. Preview and local development never write to the production store.
+Only changed daily summaries are committed. The collector validates bounded history JSON, checks its revision before writing, and replaces files atomically. The entire collection and deployment workflow is serialized. A history read, validation, or write failure fails the workflow and preserves the existing Pages deployment; it cannot publish an empty replacement archive. When persistence fails in the history recorder, its returned snapshot still includes this run's observations with `historyRecording: "unavailable"`, so a recorded outage day is not hidden.
 
-The authenticated `/api/cron/history` endpoint runs daily at 03:00 UTC, with Vercel's Hobby scheduling precision of up to 59 minutes. It refreshes feature flags, bypasses the function's observation cache, and records only enabled services. This supplies one daily observation even without visitors. Active visitors add checks at the normal 60-second polling interval. This cadence cannot establish continuous uptime or detect every short interruption. More frequent unattended checks require an external monitor or a plan that supports a more frequent cron schedule. See [Vercel Cron usage and pricing](https://vercel.com/docs/cron-jobs/usage-and-pricing).
+The workflow checks out `main` and `monitoring-data` independently, runs `bun run monitor`, commits `history.json` when it changes, then builds a static page and public status JSON. Only the `build/` directory is uploaded. GitHub's token has contents-write permission for the history step; Pages deployment uses a separate job with Pages and OIDC permissions. Optional feed credentials are restricted to collection.
 
-To configure the linked project:
+The migration seed is `src/data/history-seed.json`, exported from the former deployment on October 12, 2026. The export contained October 4–6; there were no durable records for October 7–11. Those missing dates stay empty. Actual collection resumes on the migration date. Local collection uses the ignored `.monitoring/` directory and never commits production history by itself.
 
-```sh
-vercel storage create breach-status-history --type blob --access private --region iad1 --json
-# Use the ID returned by the create command. OIDC adds HISTORY_STORE_ID without a static token.
-vercel storage connect <store-id> --project breach-status --environment production --auth oidc --prefix HISTORY --yes
-# ASVS 11.5.1: generate 256 bits of cryptographic randomness and pass it through stdin.
-openssl rand -hex 32 | vercel env add CRON_SECRET production
-vercel deploy --prod --yes
-```
-
-Reuse existing storage and cron credentials when already configured. Vercel sends `CRON_SECRET` as a bearer token to scheduled requests. Other requests receive 401 before any probes. Keep the secret server-only. A deployment is required after connecting storage or changing environment variables. The store uses [Vercel Blob OIDC authentication](https://vercel.com/changelog/vercel-blob-now-supports-oidc-authentication); no storage credentials reach the browser.
+Configure Settings → Pages → Source as **GitHub Actions** and retain the data branch. Pushes to `main` publish after validation, and the Pages workflow also accepts manual dispatch. There is one production environment and no preview branch. The retired `/api/cron/history` endpoint no longer exists. Five-minute sampling cannot establish continuous uptime or detect every short interruption.
 
 ## Publish incidents
 
@@ -107,4 +100,4 @@ Allowed incident stages: `investigating`, `identified`, `monitoring`, `resolved`
 
 ## Boundaries
 
-The status page does not sign into user accounts, retrieve VPN subscriptions, modify infrastructure, or query management APIs with administrator credentials. All HTTP targets are fixed in server code. Feed authentication is sent only to the configured feed URL. Public output contains component IDs, statuses, measured latency, observation times, history, and incident reports. Svelte escapes visible copy; CSP restricts scripts, connections, and fonts to the same origin.
+The status page does not sign into user accounts, retrieve VPN subscriptions, modify infrastructure, or query management APIs with administrator credentials. All HTTP targets are fixed in collector code. Feed authentication is sent only to the configured feed URL. Public output contains component IDs, statuses, measured latency, observation times, history, and incident reports. Svelte escapes visible copy; CSP restricts scripts, connections, and fonts to the same origin.

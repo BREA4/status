@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { componentIds } from './catalog';
 
-export const FRESHNESS_MS = 5 * 60 * 1000;
+export const FRESHNESS_MS = 15 * 60 * 1000;
+export const FEED_FRESHNESS_MS = 5 * 60 * 1000;
 export const statusSchema = z.enum([
   'operational',
   'degraded',
@@ -80,10 +81,43 @@ export interface Snapshot {
   feed: 'connected' | 'unconfigured' | 'unavailable';
 }
 
-export function isFresh(checkedAt: string | null, now = Date.now()): boolean {
+export const snapshotSchema = z.object({
+  generatedAt: timestamp,
+  historyRecording: z.enum(['recorded', 'unconfigured', 'unavailable']).optional(),
+  components: z
+    .array(
+      z.object({
+        id: z.string().refine((id) => componentIds.includes(id)),
+        status: statusSchema,
+        checkedAt: timestamp.nullable(),
+        latency: z.number().nonnegative().nullable(),
+        source: z.enum(['http', 'feed', 'none']),
+        history: z
+          .array(dailySchema)
+          .max(90)
+          .refine(
+            (days) => new Set(days.map(({ date }) => date)).size === days.length,
+            'Duplicate history day'
+          )
+      })
+    )
+    .max(componentIds.length)
+    .refine(
+      (components) => new Set(components.map(({ id }) => id)).size === components.length,
+      'Duplicate component'
+    ),
+  incidents: z.array(incidentSchema).max(100),
+  feed: z.enum(['connected', 'unconfigured', 'unavailable'])
+});
+
+export function isFresh(
+  checkedAt: string | null,
+  now = Date.now(),
+  maxAge = FRESHNESS_MS
+): boolean {
   if (!checkedAt) return false;
   const age = now - Date.parse(checkedAt);
-  return Number.isFinite(age) && age >= -60_000 && age <= FRESHNESS_MS;
+  return Number.isFinite(age) && age >= -60_000 && age <= maxAge;
 }
 export function currentStatus(
   component: ComponentStatus,

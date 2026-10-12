@@ -6,10 +6,10 @@ test('applies real API responses immediately and when focus or connectivity retu
   page
 }, testInfo) => {
   const t = messages[testInfo.project.name === 'mobile-ru' ? 'ru' : 'en'];
-  const firstPoll = page.waitForResponse(
-    (response) => new URL(response.url()).pathname === '/api/status'
+  const firstPoll = page.waitForResponse((response) =>
+    new URL(response.url()).pathname.endsWith('/api/status.json')
   );
-  await page.goto('/');
+  await page.goto('./');
   const firstResponse = await firstPoll;
   expect(firstResponse.status()).toBe(200);
   const initial = (await firstResponse.json()) as Snapshot;
@@ -31,8 +31,8 @@ test('applies real API responses immediately and when focus or connectivity retu
   ).toBe(true);
 
   for (const event of ['focus', 'online']) {
-    const response = page.waitForResponse(
-      (response) => new URL(response.url()).pathname === '/api/status'
+    const response = page.waitForResponse((response) =>
+      new URL(response.url()).pathname.endsWith('/api/status.json')
     );
     await page.evaluate((event) => window.dispatchEvent(new Event(event)), event);
     const result = await response;

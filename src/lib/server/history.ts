@@ -128,10 +128,13 @@ export async function recordHistory(snapshot: Snapshot, store?: HistoryStore): P
       }
     }
   } catch {
-    // ASVS 16.5.2: storage failures preserve live status and never claim unsaved observations.
-    return stored
-      ? attachHistory(snapshot, stored.document, 'unavailable')
-      : { ...snapshot, historyRecording: 'unavailable' };
+    // ASVS 16.5.2: keep observed days visible even when persisting them fails.
+    // The unavailable flag distinguishes visible observations from durable storage.
+    return attachHistory(
+      snapshot,
+      mergeHistory(stored?.document ?? { version: 1, components: [] }, snapshot),
+      'unavailable'
+    );
   }
   return { ...snapshot, historyRecording: 'unavailable' };
 }

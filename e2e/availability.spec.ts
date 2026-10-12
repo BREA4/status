@@ -8,7 +8,7 @@ test.use({ reducedMotion: 'reduce' });
 test('shows a compact status row without radar or monitoring controls', async ({
   page
 }, testInfo) => {
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.locator('.status-summary')).toBeVisible();
   await expect(page.locator('.summary-dot')).toBeVisible();
   await expect(
@@ -31,7 +31,7 @@ test('shows a compact status row without radar or monitoring controls', async ({
 
 test('service details contain only the 90-day history', async ({ page }, testInfo) => {
   const t = messages[testInfo.project.name === 'mobile-ru' ? 'ru' : 'en'];
-  await page.goto('/');
+  await page.goto('./');
   await page.locator('.component-toggle').first().click();
   const detail = page.locator('.component-detail');
   await expect(detail.locator(':scope > *')).toHaveCount(1);
@@ -56,11 +56,11 @@ test('automatically updates the headline from reported data and incidents', asyn
   await page.clock.install({ time: new Date(time) });
   let snapshot = emptySnapshot(time);
   let requests = 0;
-  await page.route('**/api/status', (route) => {
+  await page.route('**/api/status.json', (route) => {
     requests++;
     return route.fulfill({ json: snapshot });
   });
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.locator('#language-selector')).toBeEnabled();
   const headline = page.getByRole('heading', { level: 1 });
   const dot = page.locator('.summary-dot');
@@ -138,8 +138,10 @@ test('automatically updates the headline from reported data and incidents', asyn
 
   // Fresh successes must expire even when the API can no longer be reached.
   await poll(Array(componentIds.length).fill('operational'), 'operational');
-  await page.route('**/api/status', (route) => route.fulfill({ status: 503, body: 'Unavailable' }));
-  await page.clock.fastForward(6 * 60_000);
+  await page.route('**/api/status.json', (route) =>
+    route.fulfill({ status: 503, body: 'Unavailable' })
+  );
+  await page.clock.fastForward(16 * 60_000);
   await expect(headline).toHaveText(t.headline.unknown);
   await expect(dot).toHaveCSS('background-color', colors[colorScheme].unknown);
 });

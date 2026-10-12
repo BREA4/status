@@ -15,7 +15,7 @@ test('disabled appearance stays light before hydration despite a saved dark pref
     await ready;
     await route.continue();
   });
-  await page.goto('/', { waitUntil: 'commit' });
+  await page.goto('./', { waitUntil: 'commit' });
   try {
     await expect(page.locator('html')).toHaveCSS('background-color', light);
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
@@ -38,20 +38,18 @@ test('disabled appearance stays light before hydration despite a saved dark pref
 test('service flags control server HTML, status API, groups and polling in both languages', async ({
   page
 }) => {
-  const response = await page.goto('/');
+  const response = await page.goto('./');
   expect(response?.status()).toBe(200);
   const html = await response!.text();
   expect(html).not.toContain('aria-controls="group-web"');
   expect(html).not.toContain('aria-controls="group-riga"');
   expect(html).not.toContain('aria-controls="group-moscow"');
-  const api = await page.request.get('/api/status');
-  expect(api.headers()['cache-control']).toBe('private, no-store');
+  const api = await page.request.get('./api/status.json');
   const snapshot = await api.json();
   expect(snapshot.components.map(({ id }: { id: string }) => id)).toEqual([
     'update-server',
     'amsterdam-reality'
   ]);
-  expect(snapshot.components[0].status).toBe('operational');
   for (const locale of ['en', 'ru'] as const) {
     await chooseLanguage(page, locale);
     await expect(page.locator('.service-group')).toHaveCount(2);
@@ -69,7 +67,7 @@ test('service flags control server HTML, status API, groups and polling in both 
 test.describe('without JavaScript', () => {
   test.use({ javaScriptEnabled: false, colorScheme: 'dark' });
   test('disabled appearance renders light on the server', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('./');
     await expect(page.locator('html')).toHaveCSS('background-color', light);
     await expect(page.locator('#theme-selector')).toHaveCount(0);
     await expect(page.locator('.service-group')).toHaveCount(2);

@@ -1,8 +1,15 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { groups } from '#lib/catalog.ts';
-  import { messages, type Locale } from '#lib/i18n.ts';
-  import { summarize, currentStatus, type Snapshot, type Status } from '#lib/status.ts';
+  import { messages, detectLocale, type Locale } from '#lib/i18n.ts';
+  import {
+    summarize,
+    currentStatus,
+    snapshotSchema,
+    type Snapshot,
+    type Status
+  } from '#lib/status.ts';
+  import { resolve, asset } from '$app/paths';
   import Icon from '#lib/components/Icon.svelte';
   import ServiceGroup from '#lib/components/ServiceGroup.svelte';
   import ThemeSwitcher from '#lib/components/ThemeSwitcher.svelte';
@@ -62,19 +69,13 @@
     if (refreshing) return;
     refreshing = true;
     try {
-      const response = await fetch('/api/status', {
+      const response = await fetch(resolve('/api/status.json'), {
         signal: AbortSignal.timeout(20_000),
         cache: 'no-store'
       });
       if (!response.ok) throw new Error('Unavailable');
-      const result = (await response.json()) as Snapshot;
-      if (
-        !Array.isArray(result.components) ||
-        !result.generatedAt ||
-        !Array.isArray(result.incidents)
-      )
-        throw new Error('Invalid response');
-      snapshot = result;
+      // ASVS 2.2.1: validate published data before it reaches status and history rendering.
+      snapshot = snapshotSchema.parse(await response.json());
     } catch {
       // Keep current observations until they expire; the next poll retries silently.
     } finally {
@@ -91,6 +92,13 @@
     }).format(new Date(value));
   }
   onMount(() => {
+    const savedLocale = document.cookie
+      .split(';')
+      .map((cookie) => cookie.trim())
+      .find((cookie) => cookie.startsWith('breach-locale='))
+      ?.slice('breach-locale='.length);
+    locale = detectLocale(savedLocale, navigator.languages.join(','));
+    document.documentElement.lang = locale;
     mounted = true;
     now = Date.now();
     let destroyed = false;
@@ -146,8 +154,8 @@
 <main class="page overflow-x-hidden w-full max-w-full" bind:this={root}>
   <a class="skip-link" href="#services">{t.skip}</a>
   <header class="site-header shell">
-    <a class="brand" href="/" aria-label="Breach"
-      ><img src="/favicon.svg" alt="" width="35" height="35" /><span
+    <a class="brand" href={resolve('/')} aria-label="Breach"
+      ><img src={asset('favicon.svg')} alt="" width="35" height="35" /><span
         >breach<span class="brand-period">.</span></span
       ></a
     >
@@ -303,10 +311,12 @@
   {/if}
   <footer class="site-footer shell">
     <div class="footer-left">
-      <img src="/favicon.svg" alt="" width="23" height="23" /><span>{t.footer}</span>
+      <img src={asset('favicon.svg')} alt="" width="23" height="23" /><span>{t.footer}</span>
     </div>
     <div class="footer-links">
-      <span>{t.timeZone}</span><a href="/api/status">{t.api}<Icon name="external" size={12} /></a>
+      <span>{t.timeZone}</span><a href={resolve('/api/status.json')}
+        >{t.api}<Icon name="external" size={12} /></a
+      >
     </div>
   </footer>
 </main>

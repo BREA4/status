@@ -161,7 +161,7 @@ test('does not create history for unobserved or stale services and keeps disable
   Object.assign(snapshot.components[1], {
     status: 'operational',
     source: 'http',
-    checkedAt: new Date(now - 600_000).toISOString()
+    checkedAt: new Date(now - 1_200_000).toISOString()
   });
   const result = await recordHistory(snapshot, store);
   expect(result.components.map(({ id }) => id)).toEqual(['account', 'update-server']);
@@ -212,7 +212,9 @@ test('storage failures and exhausted conflicts leave live status working without
     });
     expect(result.historyRecording).toBe('unavailable');
     expect(result.components[0].status).toBe('operational');
-    expect(result.components[0].history).toEqual([]);
+    expect(result.components[0].history).toEqual([
+      { date: '2026-10-04', status: 'operational', uptime: null }
+    ]);
     expect(writes).toBe(error instanceof HistoryConflict ? 3 : 1);
     expect(JSON.stringify(result)).not.toContain('private storage details');
   }
@@ -238,4 +240,27 @@ test('rejects corrupt storage, unknown components and duplicate dates before mer
       components: [{ ...component, history: [...component.history, ...component.history] }]
     }).success
   ).toBe(false);
+});
+
+test('keeps an observed outage day visible when durable storage is unavailable', async () => {
+  const snapshot = observation('website', 'outage');
+  const result = await recordHistory(snapshot, {
+    read: async () => ({
+      document: {
+        version: 1,
+        components: [
+          { id: 'website', history: [{ date: '2026-10-03', status: 'operational', uptime: null }] }
+        ]
+      },
+      etag: 'previous'
+    }),
+    write: async () => {
+      throw new Error('Storage unavailable');
+    }
+  });
+  expect(result.historyRecording).toBe('unavailable');
+  expect(result.components[0].history).toEqual([
+    { date: '2026-10-03', status: 'operational', uptime: null },
+    { date: '2026-10-04', status: 'outage', uptime: null }
+  ]);
 });

@@ -1,26 +1,18 @@
-import { createClient } from '@vercel/flags-core';
-import { getVercelOidcToken } from '@vercel/oidc';
-import { featureDefinitions, featuresFromValues, type Features } from '#lib/features.ts';
+import { readFileSync } from 'node:fs';
+import values from '../../data/features.json';
+import { featuresFromValues, type Features } from '#lib/features.ts';
 
-// ASVS 13.2.1, 13.3.2: use Vercel's request-scoped OIDC credentials only on the server.
-const client = createClient(process.env.FLAGS || undefined, {
-  buildStep: false,
-  stream: false,
-  polling: { intervalMs: 60_000, initTimeoutMs: 1_000 }
-});
-
-async function readVercelFlags(): Promise<Record<string, unknown>> {
-  // The deployment token can be in the request context without any process.env token.
-  if (!process.env.FLAGS) await getVercelOidcToken();
-  const results = await client.bulkEvaluate<boolean>(featureDefinitions);
-  return Object.fromEntries(Object.entries(results).map(([key, result]) => [key, result.value]));
+function readConfiguredFeatures(): Record<string, unknown> {
+  // Operator-only build configuration. No file paths or credentials come from visitors.
+  return process.env.STATUS_FEATURES_FILE
+    ? JSON.parse(readFileSync(process.env.STATUS_FEATURES_FILE, 'utf8'))
+    : values;
 }
 
-export async function getFeatures(readFlags = readVercelFlags): Promise<Features> {
-  try {
-    return featuresFromValues(await readFlags());
-  } catch {
-    // ASVS 16.5.2: provider failures use documented defaults without exposing credentials.
-    return featuresFromValues();
-  }
+export async function getFeatures(
+  readFlags: () =>
+    Record<string, unknown> | Promise<Record<string, unknown>> = readConfiguredFeatures
+): Promise<Features> {
+  // ASVS 2.2.1, 16.5.3: reject unreadable build configuration instead of publishing defaults.
+  return featuresFromValues(await readFlags());
 }

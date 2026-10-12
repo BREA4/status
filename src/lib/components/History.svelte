@@ -31,7 +31,12 @@
     <span>{t.history}</span><span title={t.historyUptime}>{summary}</span>
   </div>
   <div class="history-bars" role="img" aria-label={`${t.history}. ${t.historyUptime}: ${summary}`}>
-    {#each days as day}<span class="history-bar {day.status}" title={label(day, locale)}
+    {#each days as day}<span
+        class="history-bar {day.status}"
+        class:missing={!recordedDates.has(day.date)}
+        data-date={day.date}
+        data-recorded={recordedDates.has(day.date)}
+        title={label(day, locale)}
       ></span>{/each}
   </div>
   <div class="history-scale"><span>{t.daysAgo}</span><span>{t.today}</span></div>

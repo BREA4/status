@@ -605,6 +605,9 @@ button {
   transform: scaleY(1.2);
 }
 .history-bar.unknown {
+  background: var(--unknown);
+}
+.history-bar.missing {
   background: repeating-linear-gradient(
     135deg,
     var(--history-empty),

@@ -1,7 +1,7 @@
-import { getSnapshot } from '#lib/server/monitor.ts';
+import { readPublishedSnapshot } from '#lib/server/published.ts';
 import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ locals }) => {
-  const snapshot = await getSnapshot(locals.features.enabledServiceIds);
+  const snapshot = readPublishedSnapshot(locals.features.enabledServiceIds);
   return {
     locale: locals.locale,
     snapshot,

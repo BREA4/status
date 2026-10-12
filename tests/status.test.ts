@@ -52,9 +52,9 @@ describe('availability', () => {
     expect(aggregate(['unknown', 'degraded', 'outage'])).toBe('outage');
     expect(aggregate(['unknown', 'maintenance'])).toBe('maintenance');
   });
-  test('expires data after five minutes and rejects future timestamps', () => {
-    expect(isFresh('2026-10-02T08:55:00Z', now)).toBe(true);
-    expect(isFresh('2026-10-02T08:54:59Z', now)).toBe(false);
+  test('expires published data after fifteen minutes and rejects future timestamps', () => {
+    expect(isFresh('2026-10-02T08:45:00Z', now)).toBe(true);
+    expect(isFresh('2026-10-02T08:44:59Z', now)).toBe(false);
     expect(isFresh('2026-10-02T09:02:00Z', now)).toBe(false);
     expect(isFresh(null, now)).toBe(false);
     const component = {

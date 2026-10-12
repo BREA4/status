@@ -6,7 +6,7 @@ test.use({ reducedMotion: 'reduce' });
 test('language menu supports keyboard selection and closes without trapping focus', async ({
   page
 }) => {
-  await page.goto('/');
+  await page.goto('./');
   const trigger = page.locator('#language-selector');
   await expect(trigger).toBeEnabled();
   await trigger.focus();
@@ -44,7 +44,7 @@ test('opens one menu at a time and fits both themes on narrow screens', async ({
 }, testInfo) => {
   const mobile = testInfo.project.name === 'mobile-ru';
   const t = messages[mobile ? 'ru' : 'en'];
-  await page.goto('/');
+  await page.goto('./');
   for (const colorScheme of ['light', 'dark'] as const) {
     await page.emulateMedia({ colorScheme });
     for (const width of mobile ? [320, 390] : [768, 1440]) {

@@ -1,0 +1,16 @@
+{
+  "theme-selector": false,
+  "service-website": false,
+  "service-login": false,
+  "service-account": false,
+  "service-devices": false,
+  "service-routing": false,
+  "service-support": false,
+  "service-control-api": false,
+  "service-profile-delivery": false,
+  "service-amsterdam-hysteria2": false,
+  "service-amsterdam-tuic": false,
+  "service-riga-reality": false,
+  "service-riga-hysteria2": false,
+  "service-riga-tuic": false
+}

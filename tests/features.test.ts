@@ -3,19 +3,17 @@ import { componentIds } from '../src/lib/catalog';
 import { featureDefinitions, serviceFlagKey } from '../src/lib/features';
 import { getFeatures } from '../src/lib/server/features';
 
-test('missing credentials and provider failures preserve services and appearance, with support hidden', async () => {
-  for (const readFlags of [
-    async () => ({}),
-    async () => {
+test('missing values preserve documented defaults while unreadable configuration fails the build', async () => {
+  expect(await getFeatures(async () => ({}))).toEqual({
+    supportEnabled: false,
+    themeEnabled: true,
+    enabledServiceIds: componentIds
+  });
+  expect(
+    getFeatures(async () => {
       throw new Error('Unavailable');
-    }
-  ]) {
-    expect(await getFeatures(readFlags)).toEqual({
-      supportEnabled: false,
-      themeEnabled: true,
-      enabledServiceIds: componentIds
-    });
-  }
+    })
+  ).rejects.toThrow('Unavailable');
 });
 
 test('every trackable component has an independent flag', async () => {

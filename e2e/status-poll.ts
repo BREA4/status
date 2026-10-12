@@ -3,7 +3,8 @@ import { expect, type Page, type Request } from '@playwright/test';
 export async function pollStatus(page: Page) {
   let request: Request | undefined;
   const onRequest = (candidate: Request) => {
-    if (!request && new URL(candidate.url()).pathname === '/api/status') request = candidate;
+    if (!request && new URL(candidate.url()).pathname.endsWith('/api/status.json'))
+      request = candidate;
   };
   page.on('request', onRequest);
   try {
