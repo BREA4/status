@@ -146,7 +146,7 @@
         },
         {
           "date": "2026-10-13",
-          "status": "operational",
+          "status": "degraded",
           "uptime": null
         }
       ]
