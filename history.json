@@ -156,7 +156,7 @@
         },
         {
           "date": "2026-10-15",
-          "status": "operational",
+          "status": "degraded",
           "uptime": null
         }
       ]
@@ -196,7 +196,7 @@
         },
         {
           "date": "2026-10-15",
-          "status": "unknown",
+          "status": "degraded",
           "uptime": null
         }
       ]
